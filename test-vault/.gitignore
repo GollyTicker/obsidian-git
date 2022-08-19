@@ -1,0 +1,6 @@
+.obsidian/workspace
+.obsidian/cache
+.trash
+# The plugin folder are simply symbolic links to the main.js, styles.css and manifest.json
+# on the repository root, hence this is ok.
+!.obsidian/plugins/obsidian-git/main.js

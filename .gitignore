@@ -4,7 +4,8 @@
 
 # npm
 node_modules
-package-lock.json
+# @vincent: Why was this file ignored?
+# package-lock.json
 main.js
 yarn.lock
 
