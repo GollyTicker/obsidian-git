@@ -6,7 +6,7 @@ import * as simple from "simple-git";
 import simpleGit, { DefaultLogFields } from "simple-git";
 import { GitManager } from "./gitManager";
 import ObsidianGit from "./main";
-import { BranchInfo, FileStatusResult, PluginState, Status } from "./types";
+import { Blame, BlameCommit, BranchInfo, FileStatusResult, PluginState, Status } from "./types";
 
 export class SimpleGit extends GitManager {
     git: simple.SimpleGit;
@@ -72,6 +72,10 @@ export class SimpleGit extends GitManager {
         };
     }
 
+    async headRevision(): Promise<string> {
+        return this.git.revparse("HEAD");
+    }
+
     //Remove wrong `"` like "My file.md"
     formatPath(path: simple.FileStatusResult, renamed: boolean = false): { path: string, from?: string; } {
         function format(path?: string): string {
@@ -93,6 +97,15 @@ export class SimpleGit extends GitManager {
                 path: format(path.path)
             };
         }
+    }
+
+    // todo. submodules are not supported! do in a future release?
+    async blame(path: string): Promise<Blame> {
+        console.log("running git blame:", path);
+        const blameStr = this.git.raw("blame", "--porcelain", "--", path);
+        console.log("running git blame finished: " , path);
+        blameStr.catch(err => console.warn(err));
+        return blameStr.then(parseBlame);
     }
 
     async commitAll({ message }: { message: string; }): Promise<number> {
@@ -196,6 +209,16 @@ export class SimpleGit extends GitManager {
             ["--", filepath], (err) => this.onError(err)
         );
         this.plugin.setState(PluginState.idle);
+    }
+
+    async hashObject(filepath: string): Promise<string> {
+        // Need to use raw command here to ensure filenames are literally used.
+        // Perhaps we could file a PR? https://github.com/steveukx/git-js/blob/main/simple-git/src/lib/tasks/hash-object.ts
+        const revision = this.git.raw("hash-object", "--", filepath);
+        revision.catch(err =>
+            err && console.warn("obsidian-git. hash-object failed:", err?.message)
+        );
+        return revision;
     }
 
     async pull(): Promise<FileStatusResult[]> {
@@ -445,4 +468,118 @@ export class SimpleGit extends GitManager {
             }
         }
     }
+}
+
+// Parse git blame porcelain format: https://git-scm.com/docs/git-blame#_the_porcelain_format
+function parseBlame(blameOutputUnnormalized: string): Blame {
+    const blameOutput = blameOutputUnnormalized.replace("\r\n","\n");
+
+    const blameLines = blameOutput.split("\n")
+    
+    const result: Blame = {
+        commits: new Map(),
+        hashPerLine: [undefined], // one-based indices
+        originalFileLineNrPerLine: [undefined],
+        finalFileLineNrPerLine: [undefined],
+        groupSizePerStartingLine: new Map(),
+    };
+    
+    let line = 1;
+    for (let bi=0; bi<blameLines.length;) {
+
+        if (startsWithNonWhitespace(blameLines[bi])) {
+            const lineInfo = blameLines[bi].split(" ");
+
+            const commitHash = parseLineInfoInto(lineInfo, line, result);
+            bi++;
+
+            // parse header values until a tab is encountered
+            for (; startsWithNonWhitespace(blameLines[bi]); bi++) {
+                const spaceSeparatedHeaderValues = blameLines[bi].split(" ");
+                parseHeaderInto(spaceSeparatedHeaderValues, result, line);
+            }
+            finalizeBlameCommitInfo(result.commits.get(commitHash));
+
+            // skip tab prefixed line
+            line += 1;
+        }
+        else if (blameLines[bi] === "" && bi === blameLines.length-1 ) {
+            // EOF
+        }
+        else {
+            throw Error(`Expected non-whitespace line or EOF, but found: ${blameLines[bi]}`);
+        }
+        bi++;
+    }
+    return result;
+}
+
+function parseLineInfoInto(lineInfo: string[], line: number, result: Blame) {
+    const hash = lineInfo[0];
+    result.hashPerLine.push(hash);
+    result.originalFileLineNrPerLine.push(parseInt(lineInfo[1]));
+    result.finalFileLineNrPerLine.push(parseInt(lineInfo[2]));
+    (lineInfo.length >= 4) && result.groupSizePerStartingLine.set(line, parseInt(lineInfo[3]));
+
+    if (parseInt(lineInfo[2]) !== line) {
+        throw Error(`git-blame output is out of order: ${line} vs ${lineInfo[2]}`);
+    }
+
+    return hash;
+}
+
+function parseHeaderInto(header: string[], out: Blame, line: number) {
+    const key = header[0];
+    const commitHash = out.hashPerLine[line];
+    const commit = out.commits.get(commitHash) || 
+        <BlameCommit>{hash: commitHash, author: {}, committer: {}, previous: {}};
+
+    switch(key) {
+        case "summary": commit.summary = header.slice(1).join(" "); break;
+
+        case "author": commit.author.name = header[1]; break;
+        case "author-mail": commit.author.email = removeEmailBrackets(header[1]); break;
+        case "author-time": commit.author.epochSeconds = parseInt(header[1]); break;
+        case "author-tz": commit.author.tz = header[1]; break;
+
+        case "committer": commit.committer.name = header[1]; break;
+        case "committer-mail": commit.committer.email = removeEmailBrackets(header[1]); break;
+        case "committer-time": commit.committer.epochSeconds = parseInt(header[1]); break;
+        case "committer-tz": commit.committer.tz = header[1]; break;
+
+        case "previous": commit.previous.commitHash = header[1]; break;
+        case "filename": commit.previous.filename = header[1]; break;
+    }
+    out.commits.set(commitHash, commit);
+}
+
+function finalizeBlameCommitInfo(commit: BlameCommit) {
+    if (commit.summary === undefined) {
+        throw Error(`Summary not provided for commit: ${commit.hash}`);
+    }
+
+    if (isUndefinedOrEmptyObject(commit.author)) {
+        commit.author = undefined;
+    }
+    if (isUndefinedOrEmptyObject(commit.committer)) {
+        commit.committer = undefined;
+    }
+    if (isUndefinedOrEmptyObject(commit.previous)) {
+        commit.previous = undefined;
+    }
+
+    commit.isZeroCommit = Boolean(commit.hash.match(/^0*$/));
+}
+
+function isUndefinedOrEmptyObject(obj: object): boolean {
+    return !obj || Object.keys(obj).length === 0;
+}
+
+function startsWithNonWhitespace(str: string): boolean {
+    return str.length > 0 && str[0].trim() === str[0];
+}
+
+function removeEmailBrackets(gitEmail: string) {
+    const prefixCleaned = gitEmail.startsWith("<") ? gitEmail.substring(1) : gitEmail;
+    return prefixCleaned.endsWith(">") ? prefixCleaned.substring(0,prefixCleaned.length-1) : prefixCleaned;
 }

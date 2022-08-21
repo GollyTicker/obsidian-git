@@ -1,6 +1,6 @@
 import { App } from "obsidian";
 import ObsidianGit from "./main";
-import { BranchInfo, FileStatusResult, Status, TreeItem, UnstagedFile } from "./types";
+import { Blame, BranchInfo, FileStatusResult, Status, TreeItem, UnstagedFile } from "./types";
 
 
 export abstract class GitManager {
@@ -12,6 +12,10 @@ export abstract class GitManager {
     }
 
     abstract status(): Promise<Status>;
+
+    abstract headRevision(): Promise<string>;
+
+    abstract blame(filepath: string): Promise<Blame>;
 
     abstract commitAll({ }: { message?: string, status?: Status, unstagedFiles?: UnstagedFile[]; }): Promise<number | undefined>;
 
@@ -26,6 +30,8 @@ export abstract class GitManager {
     abstract unstage(filepath: string, relativeToVault: boolean): Promise<void>;
 
     abstract discard(filepath: string): Promise<void>;
+
+    abstract hashObject(filepath: string): Promise<string>;
 
     abstract pull(): Promise<FileStatusResult[]>;
 

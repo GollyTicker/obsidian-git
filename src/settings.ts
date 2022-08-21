@@ -238,6 +238,22 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                             plugin.saveSettings();
                         })
                 );
+            
+            containerEl.createEl("br");
+            containerEl.createEl("h3", { text: "Line Author Information"});
+
+            new Setting(containerEl)
+                .setName("Show line-wise author and commit information (git-blame)")
+                .addToggle((toggle) => 
+                    toggle
+                        .setValue(plugin.settings.showLineAuthorInfo)
+                        .onChange((value) => {
+                            plugin.settings.showLineAuthorInfo = value;
+                            plugin.saveSettings();
+                            value ? plugin.initLineAuthorFunctionality() : plugin.deinitLineAuthorFunctionality();
+                        })
+                );
+
             containerEl.createEl("br");
             containerEl.createEl("h3", { text: "Backup" });
 

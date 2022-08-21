@@ -1,7 +1,10 @@
+import { Extension } from "@codemirror/state";
 import { debounce, Debouncer, EventRef, Menu, normalizePath, Notice, Plugin, TAbstractFile, TFile } from "obsidian";
 import { PromiseQueue } from "src/promiseQueue";
 import { ObsidianGitSettingsTab } from "src/settings";
 import { StatusBar } from "src/statusBar";
+import { } from "src/ui/editor/lineAuthorInfo/control";
+import { enabledLineAuthorInfoExtensions, LineAuthorInfoProvider } from "src/ui/editor/lineAuthorInfo/lineAuthorInfoProvider";
 import { ChangedFilesModal } from "src/ui/modals/changedFilesModal";
 import { CustomMessageModal } from "src/ui/modals/customMessageModal";
 import { DEFAULT_SETTINGS, DIFF_VIEW_CONFIG, GIT_VIEW_CONFIG } from "./constants";
@@ -39,6 +42,11 @@ export default class ObsidianGit extends Plugin {
     deleteEvent: EventRef;
     createEvent: EventRef;
     renameEvent: EventRef;
+    lineAuthorInfoProvider: LineAuthorInfoProvider;
+    lineAuthorFileOpenEvent: EventRef;
+    lineAuthorFileModificationEvent: EventRef;
+    lineAuthorInfoCmExtensions: Extension[] = [];
+    
 
     debRefresh = debounce(
         () => {
@@ -89,6 +97,8 @@ export default class ObsidianGit extends Plugin {
         this.registerView(DIFF_VIEW_CONFIG.type, (leaf) => {
             return new DiffView(leaf, this);
         });
+
+        this.registerEditorExtension(this.lineAuthorInfoCmExtensions);
 
         (this.app.workspace as any).registerHoverLinkSource(GIT_VIEW_CONFIG.type, {
             display: 'Git View',
@@ -387,6 +397,7 @@ export default class ObsidianGit extends Plugin {
         this.gitReady = false;
         dispatchEvent(new CustomEvent('git-refresh'));
 
+        this.deinitLineAuthorFunctionality();
         this.clearAutoPull();
         this.clearAutoPush();
         this.clearAutoBackup();
@@ -473,6 +484,10 @@ export default class ObsidianGit extends Plugin {
                     this.registerEvent(this.deleteEvent);
                     this.registerEvent(this.createEvent);
                     this.registerEvent(this.renameEvent);
+
+                    if (this.settings.showLineAuthorInfo) {
+                        this.initLineAuthorFunctionality();
+                    }
 
                     dispatchEvent(new CustomEvent('git-refresh'));
 
@@ -908,6 +923,61 @@ export default class ObsidianGit extends Plugin {
         return false;
     }
 
+    // todo. explain these things.
+    public initLineAuthorFunctionality() {
+        console.log("Enabling line author info functionality.");
+        this.lineAuthorInfoProvider = new LineAuthorInfoProvider(this);
+
+        this.lineAuthorFileOpenEvent = this.app.workspace.on("file-open", (file: TFile) => {
+            this.lineAuthorInfoProvider?.trackChanged(file);
+        });
+
+        this.lineAuthorFileModificationEvent = this.app.vault.on("modify",
+            (anyPath: TAbstractFile) => {
+                if (anyPath instanceof TFile) {
+                    this.lineAuthorInfoProvider?.trackChanged(anyPath);
+                }
+            }
+        );
+
+        this.registerEvent(this.lineAuthorFileOpenEvent);
+
+        this.registerEvent(this.lineAuthorFileModificationEvent);
+
+        // Yes, we need to directly modify the array and notify the change to have
+        // toggleable Codemirror extensions.
+        this.lineAuthorInfoCmExtensions.push(enabledLineAuthorInfoExtensions());
+        this.app.workspace.updateOptions();
+
+        // Handle all initially opened files
+        this.app.workspace.iterateAllLeaves(leaf => {
+            const obsView = (<any>leaf?.view);
+            const file = obsView?.file;
+            if (!file || obsView?.allowNoFile || !this?.lineAuthorInfoProvider) return;
+            
+            console.log("Initially registering: ", file?.path);
+            this.lineAuthorInfoProvider.trackChanged(file);
+        });
+    }
+
+    public deinitLineAuthorFunctionality() {
+        console.log("Disabling line author info functionality.");
+        // todo. Do I need to unregister events here?
+        this.app.workspace.offref(this.lineAuthorFileOpenEvent);
+        this.app.workspace.offref(this.lineAuthorFileModificationEvent);
+        this.app.metadataCache.offref(this.lineAuthorFileOpenEvent);
+        this.app.metadataCache.offref(this.lineAuthorFileModificationEvent);
+
+        // Yes, we need to directly modify the array and notify the change to have
+        // toggleable Codemirror extensions.
+        for (const ext of this.lineAuthorInfoCmExtensions) {
+            this.lineAuthorInfoCmExtensions.remove(ext);
+        }
+        this.app.workspace.updateOptions();
+
+        this.lineAuthorInfoProvider?.destroy();
+        this.lineAuthorInfoProvider = undefined;
+    }
 
     async handleConflict(conflicted?: string[]): Promise<void> {
         this.setState(PluginState.conflicted);
