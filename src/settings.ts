@@ -2,7 +2,7 @@ import { Notice, Platform, PluginSettingTab, Setting } from "obsidian";
 import { IsomorphicGit } from "./isomorphicGit";
 import ObsidianGit from "./main";
 import { SimpleGit } from "./simpleGit";
-import { SyncMethod } from "./types";
+import { LineAuthorDisplay, SyncMethod } from "./types";
 
 export class ObsidianGitSettingsTab extends PluginSettingTab {
     display(): void {
@@ -253,6 +253,27 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                             value ? plugin.initLineAuthorFunctionality() : plugin.deinitLineAuthorFunctionality();
                         })
                 );
+
+
+            new Setting(containerEl)
+                .setName("If and how the author is displayed")
+                .addDropdown((dropdown) => {
+                    const options: Record<LineAuthorDisplay, string> = {
+                        'hide': 'Hide',
+                        'full': 'Full name',
+                        'first name': 'First name',
+                        'last name': 'Last name',
+                        'initials': 'Initials',
+                    };
+                    dropdown.addOptions(options);
+                    dropdown.setValue(plugin.settings.authorDisplayLineAuthorInfo);
+
+                    dropdown.onChange(async (option: LineAuthorDisplay) => {
+                        plugin.settings.authorDisplayLineAuthorInfo = option;
+                        plugin.saveSettings();
+                        plugin.refreshLineAuthorViews();
+                    });
+                });
 
             containerEl.createEl("br");
             containerEl.createEl("h3", { text: "Backup" });

@@ -34,7 +34,10 @@ export interface ObsidianGitSettings {
     basePath: string;
 
     showLineAuthorInfo: boolean;
+    authorDisplayLineAuthorInfo: LineAuthorDisplay;
 }
+
+export type LineAuthorDisplay = 'hide' | 'full' | 'first name' | 'last name' | 'initials';
 
 export type SyncMethod = 'rebase' | 'merge' | 'reset';
 

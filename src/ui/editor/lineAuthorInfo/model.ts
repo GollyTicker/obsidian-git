@@ -6,7 +6,7 @@ import {
   Transaction
 } from "@codemirror/state";
 import { editorViewField } from "obsidian";
-import { Blame } from "src/types";
+import { Blame, LineAuthorDisplay, ObsidianGitSettings } from "src/types";
 
 // Looking into the proper way how CodeMirror works, we can see
 // that we need state, facet, transactions, etc. to make transactions
@@ -81,6 +81,18 @@ export function getLineAuthorAnnotation(tr: Transaction): OptLineAuthoring {
 }
 
 // =========================================================
+export const LineAuthorSettingsAvailableType: AnnotationType<LineAuthorSettings> = Annotation.define<LineAuthorSettings>();
+
+export function newSettingsAsTransaction(
+  settings: LineAuthorSettings,
+  state: EditorState,
+): Transaction {
+  return state.update({
+    annotations: LineAuthorSettingsAvailableType.of(settings)
+  })
+}
+
+// =========================================================
 
 /** todo. */
 export const lineAuthorState: StateField<OptLineAuthoring> =
@@ -96,4 +108,16 @@ export const lineAuthorState: StateField<OptLineAuthoring> =
 /** todo. */
 export function getObsidianFilepath(state: EditorState): string | undefined {
   return state.field(editorViewField, false)?.file?.path;
+}
+
+// =================================================
+
+export type LineAuthorSettings = {
+  authorDisplay: LineAuthorDisplay;
+};
+
+export function settingsFrom(settings: ObsidianGitSettings) {
+  return {
+    authorDisplay: settings.authorDisplayLineAuthorInfo,
+  };
 }

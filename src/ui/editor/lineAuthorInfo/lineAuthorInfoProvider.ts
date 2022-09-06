@@ -1,13 +1,17 @@
 import { Extension } from "@codemirror/state";
 import { TFile } from "obsidian";
 import ObsidianGit from "src/main";
-import { subscribeNewEditor } from "src/ui/editor/lineAuthorInfo/control";
+import {
+  lineAuthorSettingsExtension, subscribeNewEditor
+} from "src/ui/editor/lineAuthorInfo/control";
 import { eventsPerFilePathSingleton } from "src/ui/editor/lineAuthorInfo/eventsPerFilepath";
 import {
   LineAuthoring,
   lineAuthoringId,
   LineAuthoringId,
+  LineAuthorSettings,
   lineAuthorState,
+  settingsFrom
 } from "src/ui/editor/lineAuthorInfo/model";
 import { lineAuthorGutter } from "src/ui/editor/lineAuthorInfo/view";
 
@@ -28,7 +32,15 @@ export class LineAuthorInfoProvider {
       return;
     }
 
+    this.notifySettingsToSubscribers(settingsFrom(this.plugin.settings));
+
     this.computeLineAuthorInfo(file);
+  }
+
+  private notifySettingsToSubscribers(settings: LineAuthorSettings) {
+    eventsPerFilePathSingleton.forEachSubscriber((las) =>
+      las.notifySettings(settings)
+    );
   }
 
   public destroy() {
@@ -62,13 +74,18 @@ export class LineAuthorInfoProvider {
     eventsPerFilePathSingleton.ifFilepathDefinedTransformSubscribers(
       file.path,
       (subs) =>
-        subs.forEach((sub) => sub.run(key, this.lineAuthorings.get(key)))
+        subs.forEach((sub) =>
+          sub.notifyLineAuthoring(key, this.lineAuthorings.get(key))
+        )
     );
   }
 }
 
 // =========================================================
 
-export function enabledLineAuthorInfoExtensions(): Extension {
-  return [subscribeNewEditor, lineAuthorState, lineAuthorGutter()];
-}
+export const enabledLineAuthorInfoExtensions: Extension = [
+  subscribeNewEditor,
+  lineAuthorSettingsExtension,
+  lineAuthorState,
+  lineAuthorGutter,
+];

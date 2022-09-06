@@ -5,7 +5,10 @@ import { eventsPerFilePathSingleton } from "src/ui/editor/lineAuthorInfo/eventsP
 import {
   LineAuthoring,
   LineAuthoringId,
+  LineAuthorSettings,
+  LineAuthorSettingsAvailableType,
   newComputationResultAsTransaction,
+  newSettingsAsTransaction
 } from "src/ui/editor/lineAuthorInfo/model";
 
 /** todo. */
@@ -30,7 +33,18 @@ export class LineAuthoringSubscriber {
     return this;
   }
 
-  public run(id: LineAuthoringId, la: LineAuthoring): void {
+  public notifySettings(settings: LineAuthorSettings): void {
+    if (this.view === undefined) {
+      console.warn("View is not defined for editor cache key. Likely a bug.");
+      // todo. telemetry?
+      return;
+    }
+
+    const transaction = newSettingsAsTransaction(settings, this.view.state);
+    this.view.dispatch(transaction);
+  }
+
+  public notifyLineAuthoring(id: LineAuthoringId, la: LineAuthoring): void {
     if (this.view === undefined) {
       console.warn(
         "View is not defined for editor cache key. Likely a bug. id: " + id
@@ -80,4 +94,18 @@ export const subscribeNewEditor: StateField<LineAuthoringSubscriber> =
       return v.newState(transaction.state);
     },
     compare: (a, b) => a === b,
+  });
+
+// ======================================================================
+
+const UNINITIALZED_SETTINGS: LineAuthorSettings = {
+  authorDisplay: "full",
+};
+
+export const lineAuthorSettingsExtension: StateField<LineAuthorSettings> =
+  StateField.define<LineAuthorSettings>({
+    create: (_state) => UNINITIALZED_SETTINGS,
+    update: (v, t) => {
+      return t.annotation(LineAuthorSettingsAvailableType) ?? v;
+    },
   });

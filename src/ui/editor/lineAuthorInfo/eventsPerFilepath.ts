@@ -1,4 +1,7 @@
-import { LineAuthoringSubscribers } from "src/ui/editor/lineAuthorInfo/control";
+import {
+  LineAuthoringSubscriber,
+  LineAuthoringSubscribers,
+} from "src/ui/editor/lineAuthorInfo/control";
 
 /** todo. */
 class EventsPerFilePath {
@@ -19,6 +22,10 @@ class EventsPerFilePath {
       this.eventsPerFilepath.set(filepath, new Set());
 
     return fn(this.eventsPerFilepath.get(filepath));
+  }
+
+  public forEachSubscriber(fn: (las: LineAuthoringSubscriber) => void): void {
+    this.eventsPerFilepath.forEach((subs) => subs.forEach(fn));
   }
 
   public clear() {

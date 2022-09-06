@@ -946,7 +946,7 @@ export default class ObsidianGit extends Plugin {
 
         // Yes, we need to directly modify the array and notify the change to have
         // toggleable Codemirror extensions.
-        this.lineAuthorInfoCmExtensions.push(enabledLineAuthorInfoExtensions());
+        this.lineAuthorInfoCmExtensions.push(enabledLineAuthorInfoExtensions);
         this.app.workspace.updateOptions();
 
         // Handle all initially opened files
@@ -1000,6 +1000,13 @@ export default class ObsidianGit extends Plugin {
             ];
         }
         this.writeAndOpenFile(lines?.join("\n"));
+    }
+
+    public refreshLineAuthorViews() {
+        if(this.settings.showLineAuthorInfo) {
+            this.deinitLineAuthorFunctionality();
+            this.initLineAuthorFunctionality();
+        }
     }
 
     async editRemotes(): Promise<string | undefined> {
