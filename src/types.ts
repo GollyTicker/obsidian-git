@@ -32,6 +32,7 @@ export interface ObsidianGitSettings {
     mergeOnPull?: boolean;
     refreshSourceControl: boolean;
     basePath: string;
+    showedMobileNotice: boolean;
 
     showLineAuthorInfo: boolean;
     authorDisplayLineAuthorInfo: LineAuthorDisplay;
