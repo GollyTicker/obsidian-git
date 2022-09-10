@@ -38,6 +38,7 @@ export interface ObsidianGitSettings {
     dateTimeFormatOptionsLineAuthorInfo: LineAuthorDateTimeFormatOptions;
     dateTimeFormatCustomStringLineAuthorInfo: string;
     dateTimeTimezoneLineAuthorInfo: LineAuthorTimezoneOption;
+    coloringMaxAgeLineAuthorInfo: string;
 }
 
 export type LineAuthorDateTimeFormatOptions = "hide" | "date" | "datetime" | "natural language" | "custom";

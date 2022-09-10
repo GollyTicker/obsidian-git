@@ -34,6 +34,7 @@ export const DEFAULT_SETTINGS: ObsidianGitSettings = {
     dateTimeFormatOptionsLineAuthorInfo: "date",
     dateTimeFormatCustomStringLineAuthorInfo: DATE_TIME_FROMAT_MINUTES,
     dateTimeTimezoneLineAuthorInfo: "local",
+    coloringMaxAgeLineAuthorInfo: "1y",
 };
 
 export const GIT_VIEW_CONFIG = {

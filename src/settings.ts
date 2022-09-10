@@ -547,6 +547,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                 .setDisabled(plugin.settings.dateTimeFormatOptionsLineAuthorInfo !== "custom");
 
             if (plugin.settings.dateTimeFormatOptionsLineAuthorInfo === "custom") {
+                // todo. shouldn't this rather be a moment format? addMomentFormat
                 dateTimeFormatCustomStringSetting
                     .setDesc(this.getQuickPreviewCustomDateTimeDescription(plugin))
                     .addText((cb) => {
@@ -587,6 +588,23 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                         plugin.refreshLineAuthorViews();
                     });
                 });
+
+
+            const oldestAgeSetting = new Setting(containerEl)
+                .setName("Oldest age in coloring")
+                .setDesc(this.getQuickPreviewOldestAgeDescription(plugin));
+            
+            oldestAgeSetting
+                .addText((text) => {
+                    text.setPlaceholder("1y");
+                    text.setValue(plugin.settings.coloringMaxAgeLineAuthorInfo);
+                    text.onChange((value) => {
+                        plugin.settings.coloringMaxAgeLineAuthorInfo = value;
+                        oldestAgeSetting.setDesc(this.getQuickPreviewOldestAgeDescription(plugin));
+                        plugin.saveSettings();
+                        plugin.refreshLineAuthorViews();
+                    })
+                })
         }
     }
 
@@ -595,4 +613,16 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
         const formattedDateTime = moment.unix(Date.now()/1000).format(format);
         return `Format string to display the authoring date. Currently: ${formattedDateTime}`;
     }
+
+    private getQuickPreviewOldestAgeDescription(plugin: ObsidianGit) {
+        const duration = parseColoringMaxAgeDuration(plugin.settings.coloringMaxAgeLineAuthorInfo);
+        const durationString = duration !== undefined ? `${duration.asDays()} days` : "invalid!";
+        return `The oldest age in the line author coloring. Everything older will have the same color. Smallest valid age is \"1d\". Currently: ${durationString}`;
+    }
+}
+
+export function parseColoringMaxAgeDuration(durationString: string): moment.Duration | undefined {
+    // https://momentjs.com/docs/#/durations/creating/
+    const duration = moment.duration("P" + durationString.toUpperCase());
+    return duration.isValid() && duration.asDays() && duration.asDays() >= 1 ? duration : undefined;
 }

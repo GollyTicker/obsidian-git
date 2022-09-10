@@ -1,6 +1,7 @@
 import { gutter, GutterMarker } from "@codemirror/view";
 import * as moment from "moment";
 import { DATE_FORMAT, DATE_TIME_FROMAT_MINUTES } from "src/constants";
+import { parseColoringMaxAgeDuration } from "src/settings";
 import {
   BlameCommit,
   LineAuthorDateTimeFormatOptions,
@@ -152,7 +153,10 @@ class LineAuthoringGutter extends GutterMarker {
           )}`;
 
     // Add basic color. todo. calibrate and improve. make adaptive to dark mode
-    node.style.backgroundColor = commitAuthoringAgeBasedColor(commit);
+    node.style.backgroundColor = commitAuthoringAgeBasedColor(
+      commit,
+      this.settings
+    );
     node.style.color = "black";
     node.style.fontSize = "1.2em";
     node.style.fontFamily = "monospace";
@@ -246,18 +250,24 @@ function authoringDate(
   return authoringDate.format(dateTimeFormat);
 }
 
-const MAX_AGE_IN_DAYS = 1 * 356;
+function commitAuthoringAgeBasedColor(
+  commit: BlameCommit,
+  settings: LineAuthorSettings
+): string {
+  const maxAgeInDays = parseColoringMaxAgeDuration(settings.coloringMaxAge)?.asDays() ?? 356;
 
-function commitAuthoringAgeBasedColor(commit: BlameCommit): string {
+  const epochSecondsNow = Date.now() / 1000;
+  const authoringEpochSeconds = commit?.author?.epochSeconds ?? 0;
+
   const secondsSinceCommit = commit.isZeroCommit
     ? 0
-    : Date.now() / 1000 - (commit?.author?.epochSeconds || 0);
+    : epochSecondsNow - authoringEpochSeconds;
 
   const daysSinceCommit = secondsSinceCommit / 60 / 60 / 24;
 
   // 0 <= x <= 1, larger means older
   // use sqrt to make recent changes more prnounced
-  const x = Math.sqrt(Math.clamp(daysSinceCommit / MAX_AGE_IN_DAYS, 0, 1));
+  const x = Math.sqrt(Math.clamp(daysSinceCommit / maxAgeInDays, 0, 1));
 
   const r = 255 * (1 - x * x);
   const g = 50;

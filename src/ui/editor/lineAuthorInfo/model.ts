@@ -124,6 +124,7 @@ export type LineAuthorSettings = {
   dateTimeFormatOptions: LineAuthorDateTimeFormatOptions;
   dateTimeFormatCustomString: string;
   dateTimeTimezone: LineAuthorTimezoneOption;
+  coloringMaxAge: string;
 };
 
 export function settingsFrom(
@@ -135,5 +136,6 @@ export function settingsFrom(
     dateTimeFormatCustomString:
       settings.dateTimeFormatCustomStringLineAuthorInfo,
     dateTimeTimezone: settings.dateTimeTimezoneLineAuthorInfo,
+    coloringMaxAge: settings.coloringMaxAgeLineAuthorInfo,
   };
 }
