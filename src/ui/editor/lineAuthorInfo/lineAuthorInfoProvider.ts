@@ -1,4 +1,4 @@
-import { Extension } from "@codemirror/state";
+import { Extension, Prec } from "@codemirror/state";
 import { TFile } from "obsidian";
 import ObsidianGit from "src/main";
 import {
@@ -83,9 +83,10 @@ export class LineAuthorInfoProvider {
 
 // =========================================================
 
-export const enabledLineAuthorInfoExtensions: Extension = [
+// todo. should we make the gutter oder configurable?
+export const enabledLineAuthorInfoExtensions: Extension = Prec.high([
   subscribeNewEditor,
   lineAuthorSettingsExtension,
   lineAuthorState,
   lineAuthorGutter,
-];
+]);

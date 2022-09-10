@@ -134,8 +134,6 @@ class LineAuthoringGutter extends GutterMarker {
     const commitHash = lineAuthoring.hashPerLine[this.line];
     const commit = lineAuthoring.commits.get(commitHash);
 
-    const node = document.body.createSpan();
-
     const shortHash = commitHash.substring(0, 6);
 
     const optionalAuthorName =
@@ -152,14 +150,17 @@ class LineAuthoringGutter extends GutterMarker {
             this.settings
           )}`;
 
+    const node = document.body.createDiv();
+
     // Add basic color. todo. calibrate and improve. make adaptive to dark mode
     node.style.backgroundColor = commitAuthoringAgeBasedColor(
       commit,
       this.settings
     );
-    node.style.color = "black";
+    node.style.color = "var(--text-normal)";
     node.style.fontSize = "1.2em";
     node.style.fontFamily = "monospace";
+    node.style.height = "100%";
 
     // todo. use maximum text length for each element to ensure predictable spacing
     node.innerText = [
@@ -266,12 +267,12 @@ function commitAuthoringAgeBasedColor(
   const daysSinceCommit = secondsSinceCommit / 60 / 60 / 24;
 
   // 0 <= x <= 1, larger means older
-  // use sqrt to make recent changes more prnounced
-  const x = Math.sqrt(Math.clamp(daysSinceCommit / maxAgeInDays, 0, 1));
+  // use n-th-root to make recent changes more prnounced
+  const x = Math.pow(Math.clamp(daysSinceCommit / maxAgeInDays, 0, 1), 1 / 2.5);
 
-  const r = 255 * (1 - x * x);
+  const r = 255 * (1 - x);
   const g = 50;
-  const b = 255 * (x * x);
+  const b = 255 * x;
 
   return `rgba(${r},${g},${b},0.2)`;
 }
