@@ -1,8 +1,10 @@
-import { Notice, Platform, PluginSettingTab, Setting } from "obsidian";
+import * as moment from "moment";
+import { moment_2, Notice, Platform, PluginSettingTab, Setting } from "obsidian";
+import { DATE_TIME_FROMAT_SECONDS } from "src/constants";
 import { IsomorphicGit } from "./isomorphicGit";
 import ObsidianGit from "./main";
 import { SimpleGit } from "./simpleGit";
-import { LineAuthorDisplay, SyncMethod } from "./types";
+import { LineAuthorDateTimeFormatOptions, LineAuthorDisplay, LineAuthorTimezoneOption, SyncMethod } from "./types";
 
 export class ObsidianGitSettingsTab extends PluginSettingTab {
     display(): void {
@@ -197,7 +199,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
 
             new Setting(containerEl)
                 .setName("{{date}} placeholder format")
-                .setDesc('Specify custom date format. E.g. "YYYY-MM-DD HH:mm:ss"')
+                .setDesc(`Specify custom date format. E.g. "${DATE_TIME_FROMAT_SECONDS}"`)
                 .addText((text) =>
                     text
                         .setPlaceholder(plugin.settings.commitDateFormat)
@@ -239,42 +241,6 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                         })
                 );
             
-            containerEl.createEl("br");
-            containerEl.createEl("h3", { text: "Line Author Information"});
-
-            new Setting(containerEl)
-                .setName("Show line-wise author and commit information (git-blame)")
-                .addToggle((toggle) => 
-                    toggle
-                        .setValue(plugin.settings.showLineAuthorInfo)
-                        .onChange((value) => {
-                            plugin.settings.showLineAuthorInfo = value;
-                            plugin.saveSettings();
-                            value ? plugin.initLineAuthorFunctionality() : plugin.deinitLineAuthorFunctionality();
-                        })
-                );
-
-
-            new Setting(containerEl)
-                .setName("If and how the author is displayed")
-                .addDropdown((dropdown) => {
-                    const options: Record<LineAuthorDisplay, string> = {
-                        'hide': 'Hide',
-                        'full': 'Full name',
-                        'first name': 'First name',
-                        'last name': 'Last name',
-                        'initials': 'Initials',
-                    };
-                    dropdown.addOptions(options);
-                    dropdown.setValue(plugin.settings.authorDisplayLineAuthorInfo);
-
-                    dropdown.onChange(async (option: LineAuthorDisplay) => {
-                        plugin.settings.authorDisplayLineAuthorInfo = option;
-                        plugin.saveSettings();
-                        plugin.refreshLineAuthorViews();
-                    });
-                });
-
             containerEl.createEl("br");
             containerEl.createEl("h3", { text: "Backup" });
 
@@ -334,6 +300,11 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                             plugin.saveSettings();
                         })
                 );
+            
+            containerEl.createEl("br");
+            containerEl.createEl("h3", { text: "Line author information"});
+
+            this.addLineAuthorInfoSettings(containerEl, plugin);
         }
 
         containerEl.createEl("br");
@@ -512,5 +483,116 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
         } else {
             keys.createEl("kbd", { text: "CTRL + SHIFT + I" });
         }
+    }
+
+    private addLineAuthorInfoSettings(containerEl: HTMLElement, plugin: ObsidianGit) {
+        new Setting(containerEl)
+            .setName("Show author and commit information for each line (git-blame)")
+            .addToggle((toggle) => toggle
+                .setValue(plugin.settings.showLineAuthorInfo)
+                .onChange((value) => {
+                    plugin.settings.showLineAuthorInfo = value;
+                    plugin.saveSettings();
+                    value ? plugin.initLineAuthorFunctionality() : plugin.deinitLineAuthorFunctionality();
+                    this.display();
+                })
+            );
+
+        if (plugin.settings.showLineAuthorInfo) {
+            new Setting(containerEl)
+                .setName("Author name display")
+                .setDesc("If and how the author is displayed")
+                .addDropdown((dropdown) => {
+                    const options: Record<LineAuthorDisplay, string> = {
+                        'hide': 'Hide',
+                        'full': 'Full name (default)',
+                        'first name': 'First name',
+                        'last name': 'Last name',
+                        'initials': 'Initials',
+                    };
+                    dropdown.addOptions(options);
+                    dropdown.setValue(plugin.settings.authorDisplayLineAuthorInfo);
+
+                    dropdown.onChange(async (option: LineAuthorDisplay) => {
+                        plugin.settings.authorDisplayLineAuthorInfo = option;
+                        plugin.saveSettings();
+                        plugin.refreshLineAuthorViews();
+                    });
+                });
+
+            new Setting(containerEl)
+                .setName("Authoring date display")
+                .setDesc("If and how the date and time of authoring the line is displayed")
+                .addDropdown((dropdown) => {
+                    const options: Record<LineAuthorDateTimeFormatOptions, string> = {
+                        'hide': 'Hide',
+                        'date': 'Date (default)',
+                        'datetime': 'Date and time',
+                        'natural language': 'Natural language',
+                        'custom': 'Custom',
+                    };
+                    dropdown.addOptions(options);
+                    dropdown.setValue(plugin.settings.dateTimeFormatOptionsLineAuthorInfo);
+
+                    dropdown.onChange(async (option: LineAuthorDateTimeFormatOptions) => {
+                        plugin.settings.dateTimeFormatOptionsLineAuthorInfo = option;
+                        plugin.saveSettings();
+                        plugin.refreshLineAuthorViews();
+                        this.display();
+                    });
+                });
+
+            const dateTimeFormatCustomStringSetting = new Setting(containerEl)
+                .setName("Custom authoring date format")
+                .setDisabled(plugin.settings.dateTimeFormatOptionsLineAuthorInfo !== "custom");
+
+            if (plugin.settings.dateTimeFormatOptionsLineAuthorInfo === "custom") {
+                dateTimeFormatCustomStringSetting
+                    .setDesc(this.getQuickPreviewCustomDateTimeDescription(plugin))
+                    .addText((cb) => {
+                        cb.setValue(plugin.settings.dateTimeFormatCustomStringLineAuthorInfo);
+                        cb.setPlaceholder("YYYY-MM-DD HH:mm");
+
+                        cb.onChange((value) => {
+                            plugin.settings.dateTimeFormatCustomStringLineAuthorInfo = value;
+                            dateTimeFormatCustomStringSetting.setDesc(
+                                this.getQuickPreviewCustomDateTimeDescription(plugin)
+                            );
+                            plugin.saveSettings();
+                            if (plugin.settings.dateTimeFormatOptionsLineAuthorInfo === "custom") {
+                                plugin.refreshLineAuthorViews();
+                            }
+                        });
+                    });
+            }
+            else {
+                dateTimeFormatCustomStringSetting
+                    .setDesc("Only applicable when authoring date display is \"Custom\"");
+            }
+
+            new Setting(containerEl)
+                .setName("Authoring date display timezone")
+                .setDesc("Show in your local timezone or explicitly display UTC offset")
+                .addDropdown((dropdown) => {
+                    const options: Record<LineAuthorTimezoneOption, string> = {
+                        'local': 'Local (default)',
+                        'utc': 'UTC',
+                    };
+                    dropdown.addOptions(options);
+                    dropdown.setValue(plugin.settings.dateTimeTimezoneLineAuthorInfo);
+
+                    dropdown.onChange(async (option: LineAuthorTimezoneOption) => {
+                        plugin.settings.dateTimeTimezoneLineAuthorInfo = option;
+                        plugin.saveSettings();
+                        plugin.refreshLineAuthorViews();
+                    });
+                });
+        }
+    }
+
+    private getQuickPreviewCustomDateTimeDescription(plugin: ObsidianGit) {
+        const format = plugin.settings.dateTimeFormatCustomStringLineAuthorInfo;
+        const formattedDateTime = moment.unix(Date.now()/1000).format(format);
+        return `Format string to display the authoring date. Currently: ${formattedDateTime}`;
     }
 }

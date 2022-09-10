@@ -435,7 +435,7 @@ export default class ObsidianGit extends Plugin {
         let data: ObsidianGitSettings = await this.loadData();
         //Check for existing settings
         if (data == undefined) {
-            data = { showedMobileNotice: true };
+            data = <ObsidianGitSettings>{ showedMobileNotice: true };
         }
         this.settings = Object.assign({}, DEFAULT_SETTINGS, data);
     }

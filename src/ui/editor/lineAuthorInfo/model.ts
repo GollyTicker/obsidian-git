@@ -6,7 +6,13 @@ import {
   Transaction
 } from "@codemirror/state";
 import { editorViewField } from "obsidian";
-import { Blame, LineAuthorDisplay, ObsidianGitSettings } from "src/types";
+import {
+  Blame,
+  LineAuthorDateTimeFormatOptions,
+  LineAuthorDisplay,
+  LineAuthorTimezoneOption,
+  ObsidianGitSettings
+} from "src/types";
 
 // Looking into the proper way how CodeMirror works, we can see
 // that we need state, facet, transactions, etc. to make transactions
@@ -81,15 +87,16 @@ export function getLineAuthorAnnotation(tr: Transaction): OptLineAuthoring {
 }
 
 // =========================================================
-export const LineAuthorSettingsAvailableType: AnnotationType<LineAuthorSettings> = Annotation.define<LineAuthorSettings>();
+export const LineAuthorSettingsAvailableType: AnnotationType<LineAuthorSettings> =
+  Annotation.define<LineAuthorSettings>();
 
 export function newSettingsAsTransaction(
   settings: LineAuthorSettings,
-  state: EditorState,
+  state: EditorState
 ): Transaction {
   return state.update({
-    annotations: LineAuthorSettingsAvailableType.of(settings)
-  })
+    annotations: LineAuthorSettingsAvailableType.of(settings),
+  });
 }
 
 // =========================================================
@@ -114,10 +121,19 @@ export function getObsidianFilepath(state: EditorState): string | undefined {
 
 export type LineAuthorSettings = {
   authorDisplay: LineAuthorDisplay;
+  dateTimeFormatOptions: LineAuthorDateTimeFormatOptions;
+  dateTimeFormatCustomString: string;
+  dateTimeTimezone: LineAuthorTimezoneOption;
 };
 
-export function settingsFrom(settings: ObsidianGitSettings) {
+export function settingsFrom(
+  settings: ObsidianGitSettings
+): LineAuthorSettings {
   return {
     authorDisplay: settings.authorDisplayLineAuthorInfo,
+    dateTimeFormatOptions: settings.dateTimeFormatOptionsLineAuthorInfo,
+    dateTimeFormatCustomString:
+      settings.dateTimeFormatCustomStringLineAuthorInfo,
+    dateTimeTimezone: settings.dateTimeTimezoneLineAuthorInfo,
   };
 }

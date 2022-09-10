@@ -1,15 +1,19 @@
 import { gutter, GutterMarker } from "@codemirror/view";
 import * as moment from "moment";
-import { BlameCommit } from "src/types";
+import { DATE_FORMAT, DATE_TIME_FROMAT_MINUTES } from "src/constants";
 import {
-  lineAuthorSettingsExtension
-} from "src/ui/editor/lineAuthorInfo/control";
+  BlameCommit,
+  LineAuthorDateTimeFormatOptions,
+  LineAuthorDisplay,
+} from "src/types";
+import { lineAuthorSettingsExtension } from "src/ui/editor/lineAuthorInfo/control";
 import {
   LineAuthoring,
   LineAuthorSettings,
   lineAuthorState,
-  OptLineAuthoring
+  OptLineAuthoring,
 } from "src/ui/editor/lineAuthorInfo/model";
+import { typeCheckedUnreachable as impossibleBranch } from "src/utils";
 
 const RESULT_AWAITING_FALLBACK = "...";
 const VALUE_NOT_FOUND_FALLBACK = "-";
@@ -124,26 +128,41 @@ class LineAuthoringGutter extends GutterMarker {
   toDOM() {
     const lineAuthoring = this.la;
 
-    const hash = lineAuthoring.hashPerLine[this.line];
-    const commit = lineAuthoring.commits.get(hash);
+    // todo. show * if comitter and author date and time are different?
+
+    const commitHash = lineAuthoring.hashPerLine[this.line];
+    const commit = lineAuthoring.commits.get(commitHash);
+
     const node = document.body.createSpan();
-    const name = () =>
-      (!commit.isZeroCommit &&
-        formatName(commit?.committer?.name, this.settings)) ||
-      VALUE_NOT_FOUND_FALLBACK;
-    const optionalName =
-      this.settings.authorDisplay === "hide" ? "" : ` ${name()}`;
 
-    const commitDate =
-      (!commit.isZeroCommit && formatCommitDate(commit)) ||
-      VALUE_NOT_FOUND_FALLBACK;
+    const shortHash = commitHash.substring(0, 6);
 
-    // Add basic color. todo. calibrate and improve.
-    node.style.backgroundColor = commitAgeBasedColor(commit);
+    const optionalAuthorName =
+      this.settings.authorDisplay === "hide"
+        ? ""
+        : ` ${authorName(commit, this.settings.authorDisplay)}`;
+
+    const optionalAuthoringDate =
+      this.settings.dateTimeFormatOptions === "hide"
+        ? ""
+        : ` ${authoringDate(
+            commit,
+            this.settings.dateTimeFormatOptions,
+            this.settings
+          )}`;
+
+    // Add basic color. todo. calibrate and improve. make adaptive to dark mode
+    node.style.backgroundColor = commitAuthoringAgeBasedColor(commit);
     node.style.color = "black";
+    node.style.fontSize = "1.2em";
+    node.style.fontFamily = "monospace";
 
     // todo. use maximum text length for each element to ensure predictable spacing
-    node.innerText = `${hash.substring(0, 6)}${optionalName} ${commitDate}`;
+    node.innerText = [
+      shortHash,
+      optionalAuthorName,
+      optionalAuthoringDate,
+    ].join("");
 
     return node;
   }
@@ -153,25 +172,18 @@ class LineAuthoringGutter extends GutterMarker {
   }
 }
 
-/** todo. */
-function formatCommitDate(commit: BlameCommit) {
-  let commitDate = "?";
-  if (commit?.committer?.epochSeconds) {
-    commitDate = moment
-      .unix(commit.committer.epochSeconds)
-      .utcOffset(commit.committer.tz)
-      .toDate()
-      .toLocaleDateString();
-  }
-  return commitDate;
-}
+function authorName(
+  commit: BlameCommit,
+  authorDisplay: Exclude<LineAuthorDisplay, "hide">
+) {
+  if (commit.isZeroCommit) return VALUE_NOT_FOUND_FALLBACK;
 
-/** todo. */
-function formatName(name: string, settings: LineAuthorSettings) {
+  const name = commit.author.name;
   const words = name.split(" ").filter((word) => word.length >= 1);
-  switch (settings.authorDisplay) {
+
+  switch (authorDisplay) {
     case "initials":
-      return words.map((word) => word[0].toUpperCase()).join(".");
+      return words.map((word) => word[0].toUpperCase()).join("");
     case "first name":
       return words.first() ?? VALUE_NOT_FOUND_FALLBACK;
     case "last name":
@@ -179,21 +191,67 @@ function formatName(name: string, settings: LineAuthorSettings) {
     case "full":
       return name;
     default:
-      console.warn(
-        "Unknown author display setting encountered: ",
-        settings.authorDisplay
-      );
-      // todo. telemetry?
-      return VALUE_NOT_FOUND_FALLBACK; // shouldn't happen
+      return impossibleBranch(authorDisplay);
   }
+}
+
+function authoringDate(
+  commit: BlameCommit,
+  dateTimeFormatOptions: Exclude<LineAuthorDateTimeFormatOptions, "hide">,
+  settings: LineAuthorSettings
+) {
+  if (commit.isZeroCommit) return VALUE_NOT_FOUND_FALLBACK;
+
+  const FALLBACK_COMMIT_DATE = "?";
+
+  if (dateTimeFormatOptions === "natural language") {
+    console.warn(
+      "date time format options not supported",
+      dateTimeFormatOptions
+    );
+    return FALLBACK_COMMIT_DATE;
+  }
+
+  if (commit?.author?.epochSeconds === undefined) return FALLBACK_COMMIT_DATE;
+
+  let dateTimeFormat;
+
+  switch (dateTimeFormatOptions) {
+    case "date":
+      dateTimeFormat = DATE_FORMAT;
+      break;
+    case "datetime":
+      dateTimeFormat = DATE_TIME_FROMAT_MINUTES;
+      break;
+    case "custom":
+      dateTimeFormat = settings.dateTimeFormatCustomString;
+      break;
+    default:
+      return impossibleBranch(dateTimeFormatOptions);
+  }
+
+  let authoringDate = moment.unix(commit.author.epochSeconds);
+
+  switch (settings.dateTimeTimezone) {
+    case "local": // moment uses local timezone by default.
+      break;
+    case "utc":
+      authoringDate = authoringDate.utcOffset(commit.author.tz);
+      dateTimeFormat += " Z";
+      break;
+    default:
+      return impossibleBranch(settings.dateTimeTimezone);
+  }
+
+  return authoringDate.format(dateTimeFormat);
 }
 
 const MAX_AGE_IN_DAYS = 1 * 356;
 
-function commitAgeBasedColor(commit: BlameCommit): string {
+function commitAuthoringAgeBasedColor(commit: BlameCommit): string {
   const secondsSinceCommit = commit.isZeroCommit
     ? 0
-    : Date.now() / 1000 - (commit?.committer?.epochSeconds || 0);
+    : Date.now() / 1000 - (commit?.author?.epochSeconds || 0);
 
   const daysSinceCommit = secondsSinceCommit / 60 / 60 / 24;
 

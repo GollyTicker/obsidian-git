@@ -1,10 +1,14 @@
 import { Platform } from "obsidian";
 import { ObsidianGitSettings } from "./types";
 
+export const DATE_FORMAT = "YYYY-MM-DD";
+export const DATE_TIME_FROMAT_MINUTES = `${DATE_FORMAT} HH:mm`;
+export const DATE_TIME_FROMAT_SECONDS = `${DATE_FORMAT} HH:mm:ss`;
+
 export const DEFAULT_SETTINGS: ObsidianGitSettings = {
     commitMessage: "vault backup: {{date}}",
     autoCommitMessage: undefined, // default undefined for settings migration
-    commitDateFormat: "YYYY-MM-DD HH:mm:ss",
+    commitDateFormat: DATE_TIME_FROMAT_SECONDS,
     autoSaveInterval: 0,
     autoPushInterval: 0,
     autoPullInterval: 0,
@@ -25,6 +29,11 @@ export const DEFAULT_SETTINGS: ObsidianGitSettings = {
     changedFilesInStatusBar: false,
     username: "",
     showedMobileNotice: false,
+    showLineAuthorInfo: false,
+    authorDisplayLineAuthorInfo: "full",
+    dateTimeFormatOptionsLineAuthorInfo: "date",
+    dateTimeFormatCustomStringLineAuthorInfo: DATE_TIME_FROMAT_MINUTES,
+    dateTimeTimezoneLineAuthorInfo: "local",
 };
 
 export const GIT_VIEW_CONFIG = {

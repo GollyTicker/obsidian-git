@@ -1,4 +1,3 @@
-import { CommitResult } from "simple-git";
 
 export interface ObsidianGitSettings {
     commitMessage: string;
@@ -36,9 +35,19 @@ export interface ObsidianGitSettings {
 
     showLineAuthorInfo: boolean;
     authorDisplayLineAuthorInfo: LineAuthorDisplay;
+    dateTimeFormatOptionsLineAuthorInfo: LineAuthorDateTimeFormatOptions;
+    dateTimeFormatCustomStringLineAuthorInfo: string;
+    dateTimeTimezoneLineAuthorInfo: LineAuthorTimezoneOption;
 }
 
+export type LineAuthorDateTimeFormatOptions = "hide" | "date" | "datetime" | "natural language" | "custom";
+
+// todo. add option for "unique initials"?
+// e.g. John Japer and Josef Joper would become "JJa" and "JJo".
+// this can be disambiguated for each file separately
 export type LineAuthorDisplay = 'hide' | 'full' | 'first name' | 'last name' | 'initials';
+
+export type LineAuthorTimezoneOption = "local" | "utc";
 
 export type SyncMethod = 'rebase' | 'merge' | 'reset';
 

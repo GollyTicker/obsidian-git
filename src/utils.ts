@@ -8,3 +8,14 @@ export const worthWalking = (filepath: string, root: string) => {
         return filepath.startsWith(root);
     }
 };
+
+/**
+ * Creates a type-error, if this function is in a possible branch.
+ * 
+ * Use this to ensure exhaustive switch cases.
+ * 
+ * During runtime, an error will be thrown, if executed.
+ */
+export function typeCheckedUnreachable(x: never): never {
+    throw new Error("Imposible branch: " + x);
+}
