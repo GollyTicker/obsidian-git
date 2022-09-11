@@ -32,7 +32,7 @@ import {
 // https://codemirror.net/docs/ref/#state.Annotation
 
 // use a more neutral word for this functionality
-export type LineAuthoring = Blame;
+export type LineAuthoring = Blame | "untracked";
 
 // This cache key may be too strict.
 // We actually don't always want to change the line authro view, when the document changes.

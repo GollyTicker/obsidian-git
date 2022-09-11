@@ -6,20 +6,24 @@ import {
   Blame,
   BlameCommit,
   LineAuthorDateTimeFormatOptions,
-  LineAuthorDisplay
+  LineAuthorDisplay,
 } from "src/types";
 import { lineAuthorSettingsExtension } from "src/ui/editor/lineAuthorInfo/control";
 import {
   LineAuthoring,
   LineAuthorSettings,
   lineAuthorState,
-  OptLineAuthoring
+  OptLineAuthoring,
 } from "src/ui/editor/lineAuthorInfo/model";
 import { typeCheckedUnreachable as impossibleBranch } from "src/utils";
 
 const RESULT_AWAITING_FALLBACK = "...";
 const VALUE_NOT_FOUND_FALLBACK = "-";
 const NEW_COMMIT = "+++";
+
+// todo. closing a window somehow leads to an illegal access error.
+
+// todo. opening the same note multiple times sometimes leads to unpopulated blame
 
 /*
 
@@ -95,6 +99,10 @@ function getLineAuthorInfo(
 
   const [key, lineAuthoring] = optLineAuthoring;
 
+  if (lineAuthoring === "untracked") {
+    return newUntrackedFileGutter(key, settings);
+  }
+
   return endLine < lineAuthoring.hashPerLine.length
     ? new LineAuthoringGutter(lineAuthoring, startLine, endLine, key, settings)
     : resultAwaitingFallback;
@@ -121,7 +129,7 @@ class TextGutter extends GutterMarker {
 /** todo. */
 class LineAuthoringGutter extends GutterMarker {
   constructor(
-    public readonly la: LineAuthoring,
+    public readonly la: Exclude<LineAuthoring, "untracked">,
     public readonly startLine: number,
     public readonly endLine: number,
     public readonly key: string,
@@ -195,7 +203,6 @@ class LineAuthoringGutter extends GutterMarker {
 function displayHash(hash: string, commit: BlameCommit) {
   return commit.isZeroCommit ? NEW_COMMIT : hash.substring(0, 6);
 }
-
 
 function authorName(
   commit: BlameCommit,
@@ -349,4 +356,31 @@ function isNewerThan(left: BlameCommit, right: BlameCommit): boolean {
   const r = getAbsoluteAuthoringMoment(right);
   const diff = l.diff(r, "minutes"); // l - r > 0  <=>  l > r  <=>  l is newer
   return diff > 0;
+}
+
+function newUntrackedFileGutter(key: string, settings: LineAuthorSettings) {
+  const untrackedDummyLineAuthoring = untrackedFileLineAuthoring();
+  return new LineAuthoringGutter(
+    untrackedDummyLineAuthoring,
+    1,
+    1,
+    key,
+    settings
+  );
+}
+
+function untrackedFileLineAuthoring(): Exclude<LineAuthoring, "untracked"> {
+  const zeroCommit: BlameCommit = {
+    hash: "000000",
+    isZeroCommit: true,
+    summary: "",
+  };
+
+  return {
+    hashPerLine: [undefined, "000000"],
+    originalFileLineNrPerLine: undefined,
+    groupSizePerStartingLine: undefined,
+    finalFileLineNrPerLine: undefined,
+    commits: new Map([["000000", zeroCommit]]),
+  };
 }

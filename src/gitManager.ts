@@ -15,7 +15,9 @@ export abstract class GitManager {
 
     abstract headRevision(): Promise<string>;
 
-    abstract blame(filepath: string): Promise<Blame>;
+    abstract blame(filepath: string): Promise<Blame | "untracked">;
+
+    abstract isTracked(filepath: string): Promise<boolean>;
 
     abstract commitAll({ }: { message?: string, status?: Status, unstagedFiles?: UnstagedFile[]; }): Promise<number | undefined>;
 

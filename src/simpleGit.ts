@@ -100,16 +100,26 @@ export class SimpleGit extends GitManager {
     }
 
     // todo. submodules are not supported! do in a future release?
-    async blame(path: string): Promise<Blame> {
+    async blame(path: string): Promise<Blame | "untracked"> {
+        if (!await this.isTracked(path)) return "untracked";
+
         const inSubmodule = await this.getSubmoduleOfFile(path);
         const args = inSubmodule ? ["-C",inSubmodule.submodule] : [];
         const relativePath = inSubmodule ? inSubmodule.relativeFilepath : path;
 
         args.push("blame","--porcelain","--",relativePath);
-        const blameStr = this.git.raw(args);
-        
-        blameStr.catch(err => console.warn(err));
-        return blameStr.then(parseBlame);
+        return this.git.raw(args, err => err && console.warn("git-blame", err))
+            .then(parseBlame);
+    }
+
+    async isTracked(path: string): Promise<boolean> {
+        const inSubmodule = await this.getSubmoduleOfFile(path);
+        const args = inSubmodule ? ["-C",inSubmodule.submodule] : [];
+        const relativePath = inSubmodule ? inSubmodule.relativeFilepath : path;
+
+        args.push("ls-files","--",relativePath);
+        return this.git.raw(args, err => err && console.warn("ls-files", err))
+            .then(x => x.trim() !== "");
     }
 
     async commitAll({ message }: { message: string; }): Promise<number> {
@@ -458,12 +468,12 @@ export class SimpleGit extends GitManager {
         // https://git-scm.com/docs/git-rev-parse#Documentation/git-rev-parse.txt---show-superproject-working-tree
         let root = await this.git.raw(
                 ["-C", path.dirname(filepath),"rev-parse","--show-toplevel"],
-            this.onError);
+            (err) => err && console.warn("get-submodule-of-file", err?.message));
         root = root.trim();
 
         const superProject = await this.git.raw(
             ["-C", path.dirname(filepath),"rev-parse","--show-superproject-working-tree"],
-            this.onError);
+            (err) => err && console.warn("get-submodule-of-file", err?.message));
 
         if (superProject.trim() === "") {
             return undefined; // not in submodule
