@@ -18,7 +18,7 @@ import {
   OptLineAuthoring,
   zeroCommit,
 } from "src/ui/editor/lineAuthorInfo/model";
-import { now, typeCheckedUnreachable as impossibleBranch } from "src/utils";
+import { epochSecondsNow, typeCheckedUnreachable as impossibleBranch } from "src/utils";
 
 const RESULT_AWAITING_FALLBACK = "...";
 const VALUE_NOT_FOUND_FALLBACK = "-";
@@ -87,6 +87,7 @@ export const lineAuthorGutter = gutter({
     return idsDifferent;
   },
   renderEmptyElements: true,
+  // todo. use a spaced based on settings to jumps in rendering less distracting.
 });
 
 /** todo. */
@@ -191,7 +192,7 @@ class LineAuthoringGutter extends GutterMarker {
         commit,
         start: this.startLine,
         end: this.endLine,
-        creationTime: now(),
+        creationTime: epochSecondsNow(),
       };
       Object.assign(latestClickedLineAuthorGutter, newMetadata);
     };

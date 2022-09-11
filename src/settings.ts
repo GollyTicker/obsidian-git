@@ -1,7 +1,8 @@
 import * as moment from "moment";
 import { Notice, Platform, PluginSettingTab, Setting } from "obsidian";
 import { DATE_TIME_FROMAT_SECONDS } from "src/constants";
-import { now } from "src/utils";
+import { lineAuthoringAvailableOnCurrentPlatform } from "src/ui/editor/lineAuthorInfo/lineAuthorInfoProvider";
+import { epochSecondsNow } from "src/utils";
 import { IsomorphicGit } from "./isomorphicGit";
 import ObsidianGit from "./main";
 import { SimpleGit } from "./simpleGit";
@@ -517,8 +518,16 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
     }
 
     private addLineAuthorInfoSettings(containerEl: HTMLElement, plugin: ObsidianGit) {
-        new Setting(containerEl)
-            .setName("Show commit authoring information next to each line (git-blame)")
+        const baseLineAuthorInfoSetting = new Setting(containerEl)
+            .setName("Show commit authoring information next to each line (git-blame)");
+
+        if (!lineAuthoringAvailableOnCurrentPlatform) {
+            baseLineAuthorInfoSetting
+                .setDesc("Only available on desktop currently.")
+                .setDisabled(true);
+        }
+
+        baseLineAuthorInfoSetting
             .setDesc("The commit hash, author name and authoring date can all be individually toggled.\nHide everything, to only show the age-colored sidebar.")
             .addToggle((toggle) => toggle
                 .setValue(plugin.settings.showLineAuthorInfo)
@@ -653,7 +662,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
 
     private getQuickPreviewCustomDateTimeDescription(plugin: ObsidianGit) {
         const format = plugin.settings.dateTimeFormatCustomStringLineAuthorInfo;
-        const formattedDateTime = now().format(format);
+        const formattedDateTime = epochSecondsNow().format(format);
         return `Format string to display the authoring date.\nCurrently: ${formattedDateTime}`;
     }
 

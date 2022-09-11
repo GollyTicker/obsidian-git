@@ -15,7 +15,7 @@ import {
   LineAuthorTimezoneOption,
   ObsidianGitSettings
 } from "src/types";
-import { now } from "src/utils";
+import { epochSecondsNow } from "src/utils";
 
 // Looking into the proper way how CodeMirror works, we can see
 // that we need state, facet, transactions, etc. to make transactions
@@ -165,6 +165,6 @@ export let latestClickedLineAuthorGutter: LineAuthorGutterContextMenuMetadata = 
   hash: "000000",
   start: 1,
   end: 1,
-  creationTime: now(),
+  creationTime: epochSecondsNow(),
   commit: zeroCommit
 };

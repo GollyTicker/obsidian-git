@@ -467,6 +467,7 @@
 /* ====================== Line Authoring Information ====================== */
 
 .cm-gutterElement.obs-git-blame-gutter {
+  /* Add background color to spacing inbetween and around the gutter for better aesthetics */
   border-width: 1px 2px 1px 2px;
   border-style: solid;
   border-color: var(--background-secondary);
@@ -474,10 +475,10 @@
 }
 
 .cm-gutterElement.obs-git-blame-gutter > div {
-  color: var(--text-muted);
-  font-weight: 600; /* line info is more important than line number. hence emphasis */
+  color: var(--text-muted); /* less pronounced text to be similar to line numbers */
   font-family: monospace;
-  height: 100%;
+  font-weight: 600; /* line info is more important than line number. hence emphasis */
+  height: 100%; /* ensure, that age-based background color occupies entire parent */
   text-align: right;
   padding: 0px 4px 0px 4px;
 }

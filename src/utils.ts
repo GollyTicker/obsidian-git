@@ -23,6 +23,6 @@ export function typeCheckedUnreachable(x: never): never {
   throw new Error("Imposible branch: " + x);
 }
 
-export function now(): Moment {
+export function epochSecondsNow(): Moment {
   return moment.unix(Date.now() / 1000);
 }

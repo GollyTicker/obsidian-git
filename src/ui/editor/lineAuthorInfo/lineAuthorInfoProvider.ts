@@ -1,5 +1,5 @@
 import { Extension, Prec } from "@codemirror/state";
-import { TFile } from "obsidian";
+import { Platform, TFile } from "obsidian";
 import ObsidianGit from "src/main";
 import {
   lineAuthorSettingsExtension,
@@ -87,3 +87,5 @@ export const enabledLineAuthorInfoExtensions: Extension = Prec.high([
   lineAuthorState,
   lineAuthorGutter,
 ]);
+
+export const lineAuthoringAvailableOnCurrentPlatform: boolean = Platform.isDesktopApp;

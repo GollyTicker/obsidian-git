@@ -4,11 +4,11 @@ import { PromiseQueue } from "src/promiseQueue";
 import { ObsidianGitSettingsTab } from "src/settings";
 import { StatusBar } from "src/statusBar";
 import { } from "src/ui/editor/lineAuthorInfo/control";
-import { enabledLineAuthorInfoExtensions, LineAuthorInfoProvider } from "src/ui/editor/lineAuthorInfo/lineAuthorInfoProvider";
+import { enabledLineAuthorInfoExtensions, LineAuthorInfoProvider, lineAuthoringAvailableOnCurrentPlatform } from "src/ui/editor/lineAuthorInfo/lineAuthorInfoProvider";
 import { latestClickedLineAuthorGutter } from "src/ui/editor/lineAuthorInfo/model";
 import { ChangedFilesModal } from "src/ui/modals/changedFilesModal";
 import { CustomMessageModal } from "src/ui/modals/customMessageModal";
-import { now } from "src/utils";
+import { epochSecondsNow } from "src/utils";
 import { DEFAULT_SETTINGS, DIFF_VIEW_CONFIG, GIT_VIEW_CONFIG } from "./constants";
 import { GitManager } from "./gitManager";
 import { IsomorphicGit } from "./isomorphicGit";
@@ -966,6 +966,9 @@ export default class ObsidianGit extends Plugin {
 
     // todo. explain these things.
     public initLineAuthorFunctionality() {
+        // todo. support minimal mobile variant?
+        if (!lineAuthoringAvailableOnCurrentPlatform) return;
+
         console.log("Enabling line author info functionality.");
         this.lineAuthorInfoProvider = new LineAuthorInfoProvider(this);
 
@@ -974,7 +977,7 @@ export default class ObsidianGit extends Plugin {
                 // click inside editor with caret active. we don't support this option
                 if (editor.hasFocus()) return;
 
-                const lineAuthorGutterWasRecentlyClicked = now()
+                const lineAuthorGutterWasRecentlyClicked = epochSecondsNow()
                     .diff(latestClickedLineAuthorGutter.creationTime, "milliseconds") <= 300;
                     
                 if (!lineAuthorGutterWasRecentlyClicked) return;
