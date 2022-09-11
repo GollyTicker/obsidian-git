@@ -19,6 +19,7 @@ import { typeCheckedUnreachable as impossibleBranch } from "src/utils";
 
 const RESULT_AWAITING_FALLBACK = "...";
 const VALUE_NOT_FOUND_FALLBACK = "-";
+const UNDISPLAYED = " ";
 const NEW_COMMIT = "+++";
 
 // todo. closing a window somehow leads to an illegal access error.
@@ -105,7 +106,7 @@ function getLineAuthorInfo(
 
   return endLine < lineAuthoring.hashPerLine.length
     ? new LineAuthoringGutter(lineAuthoring, startLine, endLine, key, settings)
-    : resultAwaitingFallback;
+    : UNDISPLAYED;
 }
 
 class TextGutter extends GutterMarker {
