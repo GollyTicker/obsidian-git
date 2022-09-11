@@ -487,7 +487,8 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
 
     private addLineAuthorInfoSettings(containerEl: HTMLElement, plugin: ObsidianGit) {
         new Setting(containerEl)
-            .setName("Show author and commit information for each line (git-blame)")
+            .setName("Show commit authoring information next to each line (git-blame)")
+            .setDesc("The commit hash, author name and authoring date can all be individually toggled.\nHide everything, to only show the age-colored sidebar.")
             .addToggle((toggle) => toggle
                 .setValue(plugin.settings.showLineAuthorInfo)
                 .onChange((value) => {
@@ -622,13 +623,13 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
     private getQuickPreviewCustomDateTimeDescription(plugin: ObsidianGit) {
         const format = plugin.settings.dateTimeFormatCustomStringLineAuthorInfo;
         const formattedDateTime = moment.unix(Date.now()/1000).format(format);
-        return `Format string to display the authoring date. Currently: ${formattedDateTime}`;
+        return `Format string to display the authoring date.\nCurrently: ${formattedDateTime}`;
     }
 
     private getQuickPreviewOldestAgeDescription(plugin: ObsidianGit) {
         const duration = parseColoringMaxAgeDuration(plugin.settings.coloringMaxAgeLineAuthorInfo);
         const durationString = duration !== undefined ? `${duration.asDays()} days` : "invalid!";
-        return `The oldest age in the line author coloring. Everything older will have the same color. Smallest valid age is \"1d\". Currently: ${durationString}`;
+        return `The oldest age in the line author coloring. Everything older will have the same color.\nSmallest valid age is \"1d\".\nCurrently: ${durationString}`;
     }
 }
 
