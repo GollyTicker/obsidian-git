@@ -279,11 +279,18 @@ function commitAuthoringAgeBasedColor(
   // use n-th-root to make recent changes more prnounced
   const x = Math.pow(Math.clamp(daysSinceCommit / maxAgeInDays, 0, 1), 1 / 2.3);
 
-  const r = 255 * (1 - 0.3 * x);
-  const g = 200;
-  const b = 255 * (0.7 + x * 0.3);
+  const color0 = { r: 255, g: 150, b:150 };
+  const color1 = { r: 120, g: 160, b:255 };
 
-  return `rgba(${r},${g},${b},0.5)`;
+  const r = lin(color0.r, color1.r, x);
+  const g = lin(color0.g, color1.g, x);
+  const b = lin(color0.b, color1.b, x);
+
+  return `rgba(${r},${g},${b},0.25)`; // todo. use 0.4 in dark mode
+}
+
+function lin(z0: number, z1: number, x: number): number {
+  return z0 + (z1 - z0) * x;
 }
 
 // colors were picked via:
