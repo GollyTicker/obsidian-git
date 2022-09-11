@@ -299,16 +299,20 @@ function commitAuthoringAgeBasedColor(
   // use n-th-root to make recent changes more prnounced
   const x = Math.pow(Math.clamp(daysSinceCommit / maxAgeInDays, 0, 1), 1 / 2.3);
 
+  const dark = isDarkMode();
+
   // colors were picked via:
   // https://color.adobe.com/de/create/color-accessibility
   const color0 = { r: 255, g: 150, b: 150 };
   const color1 = { r: 120, g: 160, b: 255 };
 
-  const r = lin(color0.r, color1.r, x);
-  const g = lin(color0.g, color1.g, x);
-  const b = lin(color0.b, color1.b, x);
+  const scaling = dark ? 0.4 : 1;
+  const r = lin(color0.r, color1.r, x) * scaling;
+  const g = lin(color0.g, color1.g, x) * scaling;
+  const b = lin(color0.b, color1.b, x) * scaling;
+  const a = dark ? 0.75 : 0.25;
 
-  return `rgba(${r},${g},${b},0.25)`; // todo. use 0.4 in dark mode
+  return `rgba(${r},${g},${b},${a})`;
 }
 
 function lin(z0: number, z1: number, x: number): number {
@@ -384,4 +388,9 @@ function untrackedFileLineAuthoring(): Exclude<LineAuthoring, "untracked"> {
     finalFileLineNrPerLine: undefined,
     commits: new Map([["000000", zeroCommit]]),
   };
+}
+
+function isDarkMode() {
+  const obsidian = (<any>window)?.app;
+  return obsidian?.getTheme() === "obsidian";
 }

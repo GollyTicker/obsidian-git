@@ -45,6 +45,7 @@ export default class ObsidianGit extends Plugin {
     lineAuthorInfoProvider: LineAuthorInfoProvider;
     lineAuthorFileOpenEvent: EventRef;
     lineAuthorFileModificationEvent: EventRef;
+    lineAuthorRefreshOnCssChangeEvent: EventRef;
     lineAuthorInfoCmExtensions: Extension[] = [];
     
 
@@ -972,6 +973,12 @@ export default class ObsidianGit extends Plugin {
             }
         );
 
+        this.lineAuthorRefreshOnCssChangeEvent = this.app.workspace.on("css-change", () => {
+            this.refreshLineAuthorViews();
+        });
+
+        this.registerEvent(this.lineAuthorRefreshOnCssChangeEvent);
+
         this.registerEvent(this.lineAuthorFileOpenEvent);
 
         this.registerEvent(this.lineAuthorFileModificationEvent);
@@ -995,8 +1002,10 @@ export default class ObsidianGit extends Plugin {
     public deinitLineAuthorFunctionality() {
         console.log("Disabling line author info functionality.");
         // todo. Do I need to unregister events here?
+        this.app.workspace.offref(this.lineAuthorRefreshOnCssChangeEvent);
         this.app.workspace.offref(this.lineAuthorFileOpenEvent);
         this.app.workspace.offref(this.lineAuthorFileModificationEvent);
+        this.app.metadataCache.offref(this.lineAuthorRefreshOnCssChangeEvent);
         this.app.metadataCache.offref(this.lineAuthorFileOpenEvent);
         this.app.metadataCache.offref(this.lineAuthorFileModificationEvent);
 
