@@ -10,12 +10,15 @@ import {
 } from "src/types";
 import { lineAuthorSettingsExtension } from "src/ui/editor/lineAuthorInfo/control";
 import {
+  LineAuthorGutterContextMenuMetadata,
   LineAuthoring,
   LineAuthorSettings,
   lineAuthorState,
+  latestClickedLineAuthorGutter,
   OptLineAuthoring,
+  zeroCommit,
 } from "src/ui/editor/lineAuthorInfo/model";
-import { typeCheckedUnreachable as impossibleBranch } from "src/utils";
+import { now, typeCheckedUnreachable as impossibleBranch } from "src/utils";
 
 const RESULT_AWAITING_FALLBACK = "...";
 const VALUE_NOT_FOUND_FALLBACK = "-";
@@ -180,7 +183,20 @@ class LineAuthoringGutter extends GutterMarker {
 
     const node = document.body.createDiv();
 
-    // Add basic color. todo. calibrate and improve. make adaptive to dark mode
+    // save this gutters info on mousedown so that the corresponding
+    // right-click / context-menu has access to this commit info.
+    node.onmousedown = (event) => {
+      const newMetadata: LineAuthorGutterContextMenuMetadata = {
+        hash,
+        commit,
+        start: this.startLine,
+        end: this.endLine,
+        creationTime: now(),
+      };
+      Object.assign(latestClickedLineAuthorGutter, newMetadata);
+    };
+
+    // Add basic color based on commit age
     node.style.backgroundColor = commitAuthoringAgeBasedColor(
       commit,
       this.settings
@@ -375,12 +391,6 @@ function newUntrackedFileGutter(key: string, settings: LineAuthorSettings) {
 }
 
 function untrackedFileLineAuthoring(): Exclude<LineAuthoring, "untracked"> {
-  const zeroCommit: BlameCommit = {
-    hash: "000000",
-    isZeroCommit: true,
-    summary: "",
-  };
-
   return {
     hashPerLine: [undefined, "000000"],
     originalFileLineNrPerLine: undefined,

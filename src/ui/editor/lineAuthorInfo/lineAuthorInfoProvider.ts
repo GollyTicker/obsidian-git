@@ -2,7 +2,8 @@ import { Extension, Prec } from "@codemirror/state";
 import { TFile } from "obsidian";
 import ObsidianGit from "src/main";
 import {
-  lineAuthorSettingsExtension, subscribeNewEditor
+  lineAuthorSettingsExtension,
+  subscribeNewEditor,
 } from "src/ui/editor/lineAuthorInfo/control";
 import { eventsPerFilePathSingleton } from "src/ui/editor/lineAuthorInfo/eventsPerFilepath";
 import {
@@ -11,7 +12,7 @@ import {
   LineAuthoringId,
   LineAuthorSettings,
   lineAuthorState,
-  settingsFrom
+  settingsFrom,
 } from "src/ui/editor/lineAuthorInfo/model";
 import { lineAuthorGutter } from "src/ui/editor/lineAuthorInfo/view";
 

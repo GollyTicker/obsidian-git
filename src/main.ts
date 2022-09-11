@@ -1,12 +1,14 @@
-import { debounce, Debouncer, EventRef, Menu, normalizePath, Notice, Platform, Plugin, TAbstractFile, TFile } from "obsidian";
 import { Extension } from "@codemirror/state";
+import { debounce, Debouncer, Editor, EventRef, MarkdownView, Menu, normalizePath, Notice, Platform, Plugin, TAbstractFile, TFile } from "obsidian";
 import { PromiseQueue } from "src/promiseQueue";
 import { ObsidianGitSettingsTab } from "src/settings";
 import { StatusBar } from "src/statusBar";
 import { } from "src/ui/editor/lineAuthorInfo/control";
 import { enabledLineAuthorInfoExtensions, LineAuthorInfoProvider } from "src/ui/editor/lineAuthorInfo/lineAuthorInfoProvider";
+import { latestClickedLineAuthorGutter } from "src/ui/editor/lineAuthorInfo/model";
 import { ChangedFilesModal } from "src/ui/modals/changedFilesModal";
 import { CustomMessageModal } from "src/ui/modals/customMessageModal";
+import { now } from "src/utils";
 import { DEFAULT_SETTINGS, DIFF_VIEW_CONFIG, GIT_VIEW_CONFIG } from "./constants";
 import { GitManager } from "./gitManager";
 import { IsomorphicGit } from "./isomorphicGit";
@@ -46,6 +48,7 @@ export default class ObsidianGit extends Plugin {
     lineAuthorFileOpenEvent: EventRef;
     lineAuthorFileModificationEvent: EventRef;
     lineAuthorRefreshOnCssChangeEvent: EventRef;
+    lineAuthorGutterContextMenuEvent: EventRef;
     lineAuthorInfoCmExtensions: Extension[] = [];
     
 
@@ -956,10 +959,38 @@ export default class ObsidianGit extends Plugin {
         return false;
     }
 
+    private copyLineAuthorInfoToClipboard(commitHash: string) {
+        navigator.clipboard.writeText(commitHash);
+        console.log("clipboard:", commitHash);
+    }
+
     // todo. explain these things.
     public initLineAuthorFunctionality() {
         console.log("Enabling line author info functionality.");
         this.lineAuthorInfoProvider = new LineAuthorInfoProvider(this);
+
+        this.lineAuthorGutterContextMenuEvent = this.app.workspace.on("editor-menu",
+            (menu: Menu, editor: Editor, _mdv: MarkdownView) => {
+                // click inside editor with caret active. we don't support this option
+                if (editor.hasFocus()) return;
+
+                const lineAuthorGutterWasRecentlyClicked = now()
+                    .diff(latestClickedLineAuthorGutter.creationTime, "milliseconds") <= 300;
+                    
+                if (!lineAuthorGutterWasRecentlyClicked) return;
+
+                // zero commit need not be copied
+                if (latestClickedLineAuthorGutter.commit.isZeroCommit) return;
+
+                menu.addItem((item) => item
+                    .setTitle("Copy commit hash")
+                    .setIcon("copy")
+                    .onClick((_evt) => {
+                        this.copyLineAuthorInfoToClipboard(latestClickedLineAuthorGutter.hash);
+                    })
+                );
+            }
+        );
 
         this.lineAuthorFileOpenEvent = this.app.workspace.on("file-open", (file: TFile) => {
             this.lineAuthorInfoProvider?.trackChanged(file);
@@ -1005,9 +1036,11 @@ export default class ObsidianGit extends Plugin {
         this.app.workspace.offref(this.lineAuthorRefreshOnCssChangeEvent);
         this.app.workspace.offref(this.lineAuthorFileOpenEvent);
         this.app.workspace.offref(this.lineAuthorFileModificationEvent);
+        this.app.workspace.offref(this.lineAuthorGutterContextMenuEvent);
         this.app.metadataCache.offref(this.lineAuthorRefreshOnCssChangeEvent);
         this.app.metadataCache.offref(this.lineAuthorFileOpenEvent);
         this.app.metadataCache.offref(this.lineAuthorFileModificationEvent);
+        this.app.metadataCache.offref(this.lineAuthorGutterContextMenuEvent);
 
         // Yes, we need to directly modify the array and notify the change to have
         // toggleable Codemirror extensions.

@@ -1,6 +1,7 @@
 import * as moment from "moment";
-import { moment_2, Notice, Platform, PluginSettingTab, Setting } from "obsidian";
+import { Notice, Platform, PluginSettingTab, Setting } from "obsidian";
 import { DATE_TIME_FROMAT_SECONDS } from "src/constants";
+import { now } from "src/utils";
 import { IsomorphicGit } from "./isomorphicGit";
 import ObsidianGit from "./main";
 import { SimpleGit } from "./simpleGit";
@@ -652,7 +653,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
 
     private getQuickPreviewCustomDateTimeDescription(plugin: ObsidianGit) {
         const format = plugin.settings.dateTimeFormatCustomStringLineAuthorInfo;
-        const formattedDateTime = moment.unix(Date.now()/1000).format(format);
+        const formattedDateTime = now().format(format);
         return `Format string to display the authoring date.\nCurrently: ${formattedDateTime}`;
     }
 
