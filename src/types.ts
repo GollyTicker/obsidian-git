@@ -34,6 +34,7 @@ export interface ObsidianGitSettings {
     showedMobileNotice: boolean;
 
     showLineAuthorInfo: boolean;
+    showCommitHashLineAuthorInfo: boolean;
     authorDisplayLineAuthorInfo: LineAuthorDisplay;
     dateTimeFormatOptionsLineAuthorInfo: LineAuthorDateTimeFormatOptions;
     dateTimeFormatCustomStringLineAuthorInfo: string;

@@ -120,6 +120,7 @@ export function getObsidianFilepath(state: EditorState): string | undefined {
 // =================================================
 
 export type LineAuthorSettings = {
+  showCommitHash: boolean;
   authorDisplay: LineAuthorDisplay;
   dateTimeFormatOptions: LineAuthorDateTimeFormatOptions;
   dateTimeFormatCustomString: string;
@@ -131,6 +132,7 @@ export function settingsFrom(
   settings: ObsidianGitSettings
 ): LineAuthorSettings {
   return {
+    showCommitHash: settings.showCommitHashLineAuthorInfo,
     authorDisplay: settings.authorDisplayLineAuthorInfo,
     dateTimeFormatOptions: settings.dateTimeFormatOptionsLineAuthorInfo,
     dateTimeFormatCustomString:

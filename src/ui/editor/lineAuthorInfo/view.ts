@@ -18,6 +18,7 @@ import { typeCheckedUnreachable as impossibleBranch } from "src/utils";
 
 const RESULT_AWAITING_FALLBACK = "...";
 const VALUE_NOT_FOUND_FALLBACK = "-";
+const NEW_COMMIT = "+++";
 
 /*
 
@@ -134,7 +135,9 @@ class LineAuthoringGutter extends GutterMarker {
     const commitHash = lineAuthoring.hashPerLine[this.line];
     const commit = lineAuthoring.commits.get(commitHash);
 
-    const shortHash = commitHash.substring(0, 6);
+    const optionalShortHash = this.settings.showCommitHash
+      ? commitHash.substring(0, 6)
+      : "";
 
     const optionalAuthorName =
       this.settings.authorDisplay === "hide"
@@ -161,10 +164,15 @@ class LineAuthoringGutter extends GutterMarker {
     node.style.fontSize = "1.2em";
     node.style.fontFamily = "monospace";
     node.style.height = "100%";
+    node.style.textAlign = "right";
+    node.style.borderWidth = "1px 3px 1px 3px";
+    node.style.borderStyle = "solid";
+    node.style.borderColor = "var(--background-secondary)";
+    node.style.padding = "0px 5px 0px 5px";
 
     // todo. use maximum text length for each element to ensure predictable spacing
     node.innerText = [
-      shortHash,
+      optionalShortHash,
       optionalAuthorName,
       optionalAuthoringDate,
     ].join("");
@@ -181,7 +189,7 @@ function authorName(
   commit: BlameCommit,
   authorDisplay: Exclude<LineAuthorDisplay, "hide">
 ) {
-  if (commit.isZeroCommit) return VALUE_NOT_FOUND_FALLBACK;
+  if (commit.isZeroCommit) return NEW_COMMIT;
 
   const name = commit.author.name;
   const words = name.split(" ").filter((word) => word.length >= 1);
@@ -205,7 +213,7 @@ function authoringDate(
   dateTimeFormatOptions: Exclude<LineAuthorDateTimeFormatOptions, "hide">,
   settings: LineAuthorSettings
 ) {
-  if (commit.isZeroCommit) return VALUE_NOT_FOUND_FALLBACK;
+  if (commit.isZeroCommit) return NEW_COMMIT;
 
   const FALLBACK_COMMIT_DATE = "?";
 
@@ -255,7 +263,8 @@ function commitAuthoringAgeBasedColor(
   commit: BlameCommit,
   settings: LineAuthorSettings
 ): string {
-  const maxAgeInDays = parseColoringMaxAgeDuration(settings.coloringMaxAge)?.asDays() ?? 356;
+  const maxAgeInDays =
+    parseColoringMaxAgeDuration(settings.coloringMaxAge)?.asDays() ?? 356;
 
   const epochSecondsNow = Date.now() / 1000;
   const authoringEpochSeconds = commit?.author?.epochSeconds ?? 0;
@@ -268,11 +277,14 @@ function commitAuthoringAgeBasedColor(
 
   // 0 <= x <= 1, larger means older
   // use n-th-root to make recent changes more prnounced
-  const x = Math.pow(Math.clamp(daysSinceCommit / maxAgeInDays, 0, 1), 1 / 2.5);
+  const x = Math.pow(Math.clamp(daysSinceCommit / maxAgeInDays, 0, 1), 1 / 2.3);
 
-  const r = 255 * (1 - x);
-  const g = 50;
-  const b = 255 * x;
+  const r = 255 * (1 - 0.3 * x);
+  const g = 200;
+  const b = 255 * (0.7 + x * 0.3);
 
-  return `rgba(${r},${g},${b},0.2)`;
+  return `rgba(${r},${g},${b},0.5)`;
 }
+
+// colors were picked via:
+// https://color.adobe.com/de/create/color-accessibility

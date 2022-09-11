@@ -500,6 +500,17 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
 
         if (plugin.settings.showLineAuthorInfo) {
             new Setting(containerEl)
+                .setName("Show commit hash")
+                .addToggle((tgl) => {
+                    tgl.setValue(plugin.settings.showCommitHashLineAuthorInfo);
+                    tgl.onChange(async (value: boolean) => {
+                        plugin.settings.showCommitHashLineAuthorInfo = value;
+                        plugin.saveSettings();
+                        plugin.refreshLineAuthorViews();
+                    });
+                });
+
+            new Setting(containerEl)
                 .setName("Author name display")
                 .setDesc("If and how the author is displayed")
                 .addDropdown((dropdown) => {

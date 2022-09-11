@@ -31,6 +31,7 @@ export const DEFAULT_SETTINGS: ObsidianGitSettings = {
     showedMobileNotice: false,
     showLineAuthorInfo: false,
     authorDisplayLineAuthorInfo: "full",
+    showCommitHashLineAuthorInfo: false,
     dateTimeFormatOptionsLineAuthorInfo: "date",
     dateTimeFormatCustomStringLineAuthorInfo: DATE_TIME_FROMAT_MINUTES,
     dateTimeTimezoneLineAuthorInfo: "local",
