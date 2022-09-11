@@ -32,6 +32,7 @@ export interface ObsidianGitSettings {
     refreshSourceControl: boolean;
     basePath: string;
     showedMobileNotice: boolean;
+    refreshSourceControlTimer: number;
 
     showLineAuthorInfo: boolean;
     showCommitHashLineAuthorInfo: boolean;

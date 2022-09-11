@@ -1,5 +1,5 @@
-import { Extension } from "@codemirror/state";
 import { debounce, Debouncer, EventRef, Menu, normalizePath, Notice, Platform, Plugin, TAbstractFile, TFile } from "obsidian";
+import { Extension } from "@codemirror/state";
 import { PromiseQueue } from "src/promiseQueue";
 import { ObsidianGitSettingsTab } from "src/settings";
 import { StatusBar } from "src/statusBar";
@@ -48,15 +48,7 @@ export default class ObsidianGit extends Plugin {
     lineAuthorInfoCmExtensions: Extension[] = [];
     
 
-    debRefresh = debounce(
-        () => {
-            if (this.settings.refreshSourceControl) {
-                this.refresh();
-            }
-        },
-        7000,
-        true
-    );
+    debRefresh: Debouncer<undefined, void>;
 
     setState(state: PluginState): void {
         this.state = state;
@@ -88,6 +80,14 @@ export default class ObsidianGit extends Plugin {
         await this.loadSettings();
         this.migrateSettings();
 
+        this.addSettingTab(new ObsidianGitSettingsTab(this.app, this));
+
+        if (!this.localStorage.getPluginDisabled()) {
+            this.loadPlugin();
+        }
+    }
+
+    async loadPlugin() {
         addEventListener("git-refresh", this.refresh.bind(this));
 
         this.registerView(GIT_VIEW_CONFIG.type, (leaf) => {
@@ -105,7 +105,7 @@ export default class ObsidianGit extends Plugin {
             defaultMod: true,
         });
 
-        this.addSettingTab(new ObsidianGitSettingsTab(this.app, this));
+        this.setRefreshDebouncer();
 
         this.addCommand({
             id: 'edit-gitignore',
@@ -332,6 +332,19 @@ export default class ObsidianGit extends Plugin {
         }
         this.app.workspace.onLayoutReady(() => this.init());
 
+    }
+
+    setRefreshDebouncer(): void {
+        this.debRefresh?.cancel();
+        this.debRefresh = debounce(
+            () => {
+                if (this.settings.refreshSourceControl) {
+                    this.refresh();
+                }
+            },
+            this.settings.refreshSourceControlTimer,
+            true
+        );
     }
 
     async showNotices(): Promise<void> {
