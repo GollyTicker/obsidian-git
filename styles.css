@@ -463,3 +463,21 @@
 .workspace-leaf-content[data-type="diff-view"] .d2h-moved-tag {
   border: 1px solid #3572b0;
 }
+
+/* ====================== Line Authoring Information ====================== */
+
+.cm-gutterElement.obs-git-blame-gutter {
+  border-width: 1px 2px 1px 2px;
+  border-style: solid;
+  border-color: var(--background-secondary);
+  background-color: var(--background-secondary);
+}
+
+.cm-gutterElement.obs-git-blame-gutter > div {
+  color: var(--text-muted);
+  font-weight: 600; /* line info is more important than line number. hence emphasis */
+  font-family: monospace;
+  height: 100%;
+  text-align: right;
+  padding: 0px 4px 0px 4px;
+}

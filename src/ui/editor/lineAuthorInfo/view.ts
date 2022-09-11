@@ -176,15 +176,6 @@ class LineAuthoringGutter extends GutterMarker {
       commit,
       this.settings
     );
-    node.style.color = "var(--text-normal)";
-    node.style.fontSize = "1.2em";
-    node.style.fontFamily = "monospace";
-    node.style.height = "100%";
-    node.style.textAlign = "right";
-    node.style.borderWidth = "1px 3px 1px 3px";
-    node.style.borderStyle = "solid";
-    node.style.borderColor = "var(--background-secondary)";
-    node.style.padding = "0px 5px 0px 5px";
 
     // todo. use maximum text length for each element to ensure predictable spacing
     node.innerText = [
