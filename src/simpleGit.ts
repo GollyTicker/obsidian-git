@@ -101,8 +101,14 @@ export class SimpleGit extends GitManager {
 
     // todo. submodules are not supported! do in a future release?
     async blame(path: string): Promise<Blame> {
+        const inSubmodule = await this.getSubmoduleOfFile(path);
+        const args = inSubmodule ? ["-C",inSubmodule.submodule] : [];
+        const relativePath = inSubmodule ? inSubmodule.relativeFilepath : path;
+
+        args.push("blame","--porcelain","--",relativePath);
+
         console.log("running git blame:", path);
-        const blameStr = this.git.raw("blame", "--porcelain", "--", path);
+        const blameStr = this.git.raw(args);
         console.log("running git blame finished: " , path);
         blameStr.catch(err => console.warn(err));
         return blameStr.then(parseBlame);
@@ -214,7 +220,14 @@ export class SimpleGit extends GitManager {
     async hashObject(filepath: string): Promise<string> {
         // Need to use raw command here to ensure filenames are literally used.
         // Perhaps we could file a PR? https://github.com/steveukx/git-js/blob/main/simple-git/src/lib/tasks/hash-object.ts
-        const revision = this.git.raw("hash-object", "--", filepath);
+        
+        const inSubmodule = await this.getSubmoduleOfFile(filepath);
+        const args = inSubmodule ? ["-C", inSubmodule.submodule] : [];
+        const relativeFilepath = inSubmodule ? inSubmodule.relativeFilepath : filepath;
+
+        args.push("hash-object", "--", relativeFilepath);
+
+        const revision = this.git.raw(args);
         revision.catch(err =>
             err && console.warn("obsidian-git. hash-object failed:", err?.message)
         );
@@ -437,6 +450,32 @@ export class SimpleGit extends GitManager {
 
     async diff(file: string, commit1: string, commit2: string): Promise<string> {
         return (await this.git.diff([`${commit1}..${commit2}`, "--", file]));
+    }
+
+    async getSubmoduleOfFile(filepath: string): Promise<{submodule: string; relativeFilepath: string; } | undefined> {
+        // git -C <dir-of-file> rev-parse --show-superproject-working-tree
+        // returns the parent git repository, if the file is in a submodule - otherwise empty.
+        // git -C <dir-of-file> rev-parse --show-toplevel
+        // returns the submodules repository root as an absolute path
+        // https://git-scm.com/docs/git-rev-parse#Documentation/git-rev-parse.txt---show-superproject-working-tree
+        let root = await this.git.raw(
+                ["-C", path.dirname(filepath),"rev-parse","--show-toplevel"],
+            this.onError);
+        root = root.trim();
+
+        const superProject = await this.git.raw(
+            ["-C", path.dirname(filepath),"rev-parse","--show-superproject-working-tree"],
+            this.onError);
+
+        if (superProject.trim() === "") {
+            return undefined; // not in submodule
+        }
+
+        const fsAdapter = this.app.vault.adapter as FileSystemAdapter;
+        const absolutePath = fsAdapter.getFullPath(path.normalize(filepath));
+        const newRelativePath = path.relative(root, absolutePath);
+
+        return {submodule: root, relativeFilepath: newRelativePath};
     }
 
     private isGitInstalled(): boolean {
