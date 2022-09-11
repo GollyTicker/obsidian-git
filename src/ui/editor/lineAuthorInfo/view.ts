@@ -3,16 +3,17 @@ import * as moment from "moment";
 import { DATE_FORMAT, DATE_TIME_FROMAT_MINUTES } from "src/constants";
 import { parseColoringMaxAgeDuration } from "src/settings";
 import {
+  Blame,
   BlameCommit,
   LineAuthorDateTimeFormatOptions,
-  LineAuthorDisplay,
+  LineAuthorDisplay
 } from "src/types";
 import { lineAuthorSettingsExtension } from "src/ui/editor/lineAuthorInfo/control";
 import {
   LineAuthoring,
   LineAuthorSettings,
   lineAuthorState,
-  OptLineAuthoring,
+  OptLineAuthoring
 } from "src/ui/editor/lineAuthorInfo/model";
 import { typeCheckedUnreachable as impossibleBranch } from "src/utils";
 
@@ -50,10 +51,16 @@ export const lineAuthorGutter = gutter({
       lineAuthorSettingsExtension,
       false
     );
-    const currLine = view.state.doc.lineAt(line.from).number;
+
+    // We have two line numbers here, because embeds, tables and co. cause
+    // multiple lines to be rendered with a single gutter. Hence, we need to
+    // choose the youngest commit - of which the info will be shown.
+    const startLine = view.state.doc.lineAt(line.from).number;
+    const endLine = view.state.doc.lineAt(line.to).number;
 
     const result: LineAuthoringGutter | string = getLineAuthorInfo(
-      currLine,
+      startLine,
+      endLine,
       lineAuthoring,
       settings,
       RESULT_AWAITING_FALLBACK
@@ -76,7 +83,8 @@ export const lineAuthorGutter = gutter({
 
 /** todo. */
 function getLineAuthorInfo(
-  currLine: number,
+  startLine: number,
+  endLine: number,
   optLineAuthoring: OptLineAuthoring,
   settings: LineAuthorSettings,
   resultAwaitingFallback: string
@@ -87,8 +95,8 @@ function getLineAuthorInfo(
 
   const [key, lineAuthoring] = optLineAuthoring;
 
-  return currLine < lineAuthoring.hashPerLine.length
-    ? new LineAuthoringGutter(lineAuthoring, currLine, key, settings)
+  return endLine < lineAuthoring.hashPerLine.length
+    ? new LineAuthoringGutter(lineAuthoring, startLine, endLine, key, settings)
     : resultAwaitingFallback;
 }
 
@@ -114,7 +122,8 @@ class TextGutter extends GutterMarker {
 class LineAuthoringGutter extends GutterMarker {
   constructor(
     public readonly la: LineAuthoring,
-    public readonly line: number,
+    public readonly startLine: number,
+    public readonly endLine: number,
     public readonly key: string,
     public readonly settings: LineAuthorSettings
   ) {
@@ -122,7 +131,11 @@ class LineAuthoringGutter extends GutterMarker {
   }
 
   eq(other: GutterMarker): boolean {
-    return this.key === (<any>other)?.key && this.line === (<any>other)?.line;
+    return (
+      this.key === (<LineAuthoringGutter>other)?.key &&
+      this.startLine === (<LineAuthoringGutter>other)?.startLine &&
+      this.endLine === (<LineAuthoringGutter>other)?.endLine
+    );
   }
 
   elementClass: string = "obs-git-blame-gutter";
@@ -132,11 +145,14 @@ class LineAuthoringGutter extends GutterMarker {
 
     // todo. show * if comitter and author date and time are different?
 
-    const commitHash = lineAuthoring.hashPerLine[this.line];
-    const commit = lineAuthoring.commits.get(commitHash);
+    const { hash, commit } = chooseNewestCommitHash(
+      lineAuthoring,
+      this.startLine,
+      this.endLine
+    );
 
     const optionalShortHash = this.settings.showCommitHash
-      ? commitHash.substring(0, 6)
+      ? displayHash(hash, commit)
       : "";
 
     const optionalAuthorName =
@@ -184,6 +200,11 @@ class LineAuthoringGutter extends GutterMarker {
     dom.parentNode.removeChild(dom);
   }
 }
+
+function displayHash(hash: string, commit: BlameCommit) {
+  return commit.isZeroCommit ? NEW_COMMIT : hash.substring(0, 6);
+}
+
 
 function authorName(
   commit: BlameCommit,
@@ -279,8 +300,10 @@ function commitAuthoringAgeBasedColor(
   // use n-th-root to make recent changes more prnounced
   const x = Math.pow(Math.clamp(daysSinceCommit / maxAgeInDays, 0, 1), 1 / 2.3);
 
-  const color0 = { r: 255, g: 150, b:150 };
-  const color1 = { r: 120, g: 160, b:255 };
+  // colors were picked via:
+  // https://color.adobe.com/de/create/color-accessibility
+  const color0 = { r: 255, g: 150, b: 150 };
+  const color1 = { r: 120, g: 160, b: 255 };
 
   const r = lin(color0.r, color1.r, x);
   const g = lin(color0.g, color1.g, x);
@@ -293,5 +316,46 @@ function lin(z0: number, z1: number, x: number): number {
   return z0 + (z1 - z0) * x;
 }
 
-// colors were picked via:
-// https://color.adobe.com/de/create/color-accessibility
+function chooseNewestCommitHash(
+  lineAuthoring: Blame,
+  startLine: number,
+  endLine: number
+) {
+  const startHash = lineAuthoring.hashPerLine[startLine];
+
+  let newest = {
+    hash: startHash,
+    commit: lineAuthoring.commits.get(startHash),
+  };
+
+  if (startLine === endLine) return newest;
+
+  for (let line = startLine + 1; line <= endLine; line++) {
+    const currentHash = lineAuthoring.hashPerLine[line];
+    const currentCommit = lineAuthoring.commits.get(currentHash);
+
+    if (
+      currentCommit.isZeroCommit ||
+      isNewerThan(currentCommit, newest.commit)
+    ) {
+      newest = { hash: currentHash, commit: currentCommit };
+    }
+  }
+
+  return newest;
+}
+
+function getAbsoluteAuthoringMoment(commit: BlameCommit) {
+  // todo. does this case even ever happen?
+  if (commit?.author?.epochSeconds === undefined)
+    return moment.unix(Date.now() / 1000);
+
+  return moment.unix(commit.author.epochSeconds).utcOffset(commit.author.tz);
+}
+
+function isNewerThan(left: BlameCommit, right: BlameCommit): boolean {
+  const l = getAbsoluteAuthoringMoment(left);
+  const r = getAbsoluteAuthoringMoment(right);
+  const diff = l.diff(r, "minutes"); // l - r > 0  <=>  l > r  <=>  l is newer
+  return diff > 0;
+}

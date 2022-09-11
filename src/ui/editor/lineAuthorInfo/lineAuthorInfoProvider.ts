@@ -62,14 +62,10 @@ export class LineAuthorInfoProvider {
 
     if (this.lineAuthorings.has(key)) {
       // already computed. just tell the editor to update to the key's state
-      console.log(`Already have ${key} so nothing to compute.`);
     } else {
       const gitAuthorResult = await this.plugin.gitManager.blame(file.path);
       this.lineAuthorings.set(key, gitAuthorResult);
-      console.log("timed: 1 Computed git blame for recent", file.path);
     }
-
-    console.log("timed: 2. Notifying new state.");
 
     eventsPerFilePathSingleton.ifFilepathDefinedTransformSubscribers(
       file.path,

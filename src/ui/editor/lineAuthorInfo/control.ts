@@ -68,7 +68,6 @@ export class LineAuthoringSubscriber {
       this.filepath,
       (subs) => {
         subs.add(this);
-        console.log("timed: 0. listening to ", this.filepath);
       }
     );
   }
@@ -98,13 +97,9 @@ export const subscribeNewEditor: StateField<LineAuthoringSubscriber> =
 
 // ======================================================================
 
-const UNINITIALZED_SETTINGS: LineAuthorSettings = {
-  authorDisplay: "full",
-};
-
 export const lineAuthorSettingsExtension: StateField<LineAuthorSettings> =
   StateField.define<LineAuthorSettings>({
-    create: (_state) => UNINITIALZED_SETTINGS,
+    create: (_state) => <LineAuthorSettings>{}, // todo. could this cause problems here?
     update: (v, t) => {
       return t.annotation(LineAuthorSettingsAvailableType) ?? v;
     },

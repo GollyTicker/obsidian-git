@@ -106,10 +106,8 @@ export class SimpleGit extends GitManager {
         const relativePath = inSubmodule ? inSubmodule.relativeFilepath : path;
 
         args.push("blame","--porcelain","--",relativePath);
-
-        console.log("running git blame:", path);
         const blameStr = this.git.raw(args);
-        console.log("running git blame finished: " , path);
+        
         blameStr.catch(err => console.warn(err));
         return blameStr.then(parseBlame);
     }
