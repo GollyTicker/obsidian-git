@@ -80,7 +80,6 @@ export class LineAuthorInfoProvider {
 
 // =========================================================
 
-// todo. should we make the gutter oder configurable?
 export const enabledLineAuthorInfoExtensions: Extension = Prec.high([
     subscribeNewEditor,
     lineAuthorSettingsExtension,

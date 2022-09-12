@@ -964,7 +964,6 @@ export default class ObsidianGit extends Plugin {
 
     // todo. explain these things.
     public initLineAuthorFunctionality() {
-        // todo. support minimal mobile variant?
         if (!lineAuthoringAvailableOnCurrentPlatform) return;
 
         console.log("Enabling line author info functionality.");
@@ -1033,15 +1032,10 @@ export default class ObsidianGit extends Plugin {
 
     public deinitLineAuthorFunctionality() {
         console.log("Disabling line author info functionality.");
-        // todo. Do I need to unregister events here?
         this.app.workspace.offref(this.lineAuthorRefreshOnCssChangeEvent);
         this.app.workspace.offref(this.lineAuthorFileOpenEvent);
-        this.app.workspace.offref(this.lineAuthorFileModificationEvent);
+        this.app.vault.offref(this.lineAuthorFileModificationEvent);
         this.app.workspace.offref(this.lineAuthorGutterContextMenuEvent);
-        this.app.metadataCache.offref(this.lineAuthorRefreshOnCssChangeEvent);
-        this.app.metadataCache.offref(this.lineAuthorFileOpenEvent);
-        this.app.metadataCache.offref(this.lineAuthorFileModificationEvent);
-        this.app.metadataCache.offref(this.lineAuthorGutterContextMenuEvent);
 
         // Yes, we need to directly modify the array and notify the change to have
         // toggleable Codemirror extensions.

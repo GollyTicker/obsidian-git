@@ -21,6 +21,9 @@ export class LineAuthoringSubscriber {
         return this.state.field(editorViewField)?.file?.path;
     }
 
+    // todo. handle rename event and refresh views. it should work reliably
+    // perhaps use the -M and -C options of git blame as well?
+
     public newState(state: EditorState) {
         // if filepath has changed, then re-subcribe.
         const oldpath = this.filepath;
@@ -36,7 +39,7 @@ export class LineAuthoringSubscriber {
     public notifySettings(settings: LineAuthorSettings): void {
         if (this.view === undefined) {
             console.warn("View is not defined for editor cache key. Likely a bug.");
-            // todo. telemetry?
+            // todo. telemetry? alternatively beta-testers via BRAT plugin
             return;
         }
 

@@ -16,7 +16,7 @@ import {
     lineAuthorState, OptLineAuthoring,
     zeroCommit
 } from "src/ui/editor/lineAuthorInfo/model";
-import { epochSecondsNow, typeCheckedUnreachable as impossibleBranch } from "src/utils";
+import { epochSecondsNow, typeCheckedUnreachable as impossibleBranch, typeCheckedUnreachable } from "src/utils";
 
 const RESULT_AWAITING_FALLBACK = "...";
 const VALUE_NOT_FOUND_FALLBACK = "-";
@@ -42,15 +42,15 @@ subscribed editors update their internal state | done
 state/editor update -> gutter can get new value | done.
 
 
-todo.
-document that line author information does not show up in reading mode.
-it's not a CM6 editor. Adding that would be quite an effort. For now it'll be just left out.
+note. line authorinfo only in surce and live preview mode.
 
 */
 
 /** todo. */
 export const lineAuthorGutter = gutter({
-    // class: "gutter-wip-class", // todo. use this to enable custom styling for users.
+    class: "gutter-wip-class",
+    // todo. use this to style entire gutter v-line. i.e. styling of alignment
+    
     lineMarker(view, line, _otherMarkers) {
         const lineAuthoring = view.state.field(lineAuthorState, false);
         const settings: LineAuthorSettings = view.state.field(
@@ -85,7 +85,46 @@ export const lineAuthorGutter = gutter({
         return idsDifferent;
     },
     renderEmptyElements: true,
-    // todo. use a spaced based on settings to jumps in rendering less distracting.
+    initialSpacer: () => new TextGutter("---"),
+    updateSpacer(spacer, update) {
+        const settings = update.state.field(lineAuthorSettingsExtension, false);
+        if (settings?.authorDisplay === undefined) return spacer;
+
+        let length = 0;
+
+        if (settings.showCommitHash) length += 6;
+
+        switch (settings.authorDisplay) {
+            case "first name":
+                length += 8 + 1;
+                break;
+            case "last name":
+            case "full":
+                length += 15 + 1;
+                break;
+            case "initials":
+                length += 2 + 1;
+            case "hide":
+                break;
+            default:
+                typeCheckedUnreachable(settings.authorDisplay);
+        }
+
+        if (settings.dateTimeFormatOptions !== "hide") length += 15 + 1;
+
+        switch (settings.dateTimeTimezone) {
+            case "local":
+                break;
+            case "utc":
+                length += 5 + 1;
+                break;
+            default:
+                typeCheckedUnreachable(settings.dateTimeTimezone);
+        }
+
+        return new TextGutter(Array(length).fill("-").join(""));
+    },
+    // // todo. use a spaced based on settings to jumps in rendering less distracting.
 });
 
 /** todo. */
@@ -327,6 +366,9 @@ function commitAuthoringAgeBasedColor(
 
     return `rgba(${r},${g},${b},${a})`;
 }
+
+// todo. small tooltip widget when hovering on line author gutter with author/hash, etc.
+// -> write into issue for future
 
 function lin(z0: number, z1: number, x: number): number {
     return z0 + (z1 - z0) * x;

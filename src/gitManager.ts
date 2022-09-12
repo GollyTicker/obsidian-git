@@ -11,6 +11,8 @@ export abstract class GitManager {
         this.app = plugin.app;
     }
 
+    // todo. move new methods used only for line-authoring and add it to simpleGit
+
     abstract status(): Promise<Status>;
 
     abstract headRevision(): Promise<string>;

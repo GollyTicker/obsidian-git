@@ -81,7 +81,7 @@ export interface BlameCommit {
     author?: UserEmail & GitTimestamp;
     committer?: UserEmail & GitTimestamp;
     previous?: { commitHash?: string; filename: string; };
-    filename?: string; // todo. what does this mean?
+    filename?: string;
     summary: string;
     isZeroCommit: boolean; // true, if hash is 000...000
 }

@@ -99,9 +99,9 @@ export class SimpleGit extends GitManager {
         }
     }
 
-    // todo. submodules are not supported! do in a future release?
     async blame(path: string): Promise<Blame | "untracked"> {
         path = this.getPath(path, true);
+        // note. ^ handle case with git-root != vault-filepath
 
         if (!await this.isTracked(path)) return "untracked";
 
@@ -463,6 +463,9 @@ export class SimpleGit extends GitManager {
     }
 
     async getSubmoduleOfFile(filepath: string): Promise<{ submodule: string; relativeFilepath: string; } | undefined> {
+        // TODO. it assumes that the filepath is relative to git repository root. not necessarily
+        // the in-vault filepath. DOCUMENT THIS CLEARLY
+        
         // git -C <dir-of-file> rev-parse --show-superproject-working-tree
         // returns the parent git repository, if the file is in a submodule - otherwise empty.
         // git -C <dir-of-file> rev-parse --show-toplevel

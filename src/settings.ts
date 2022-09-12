@@ -599,7 +599,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                 .setDisabled(plugin.settings.dateTimeFormatOptionsLineAuthorInfo !== "custom");
 
             if (plugin.settings.dateTimeFormatOptionsLineAuthorInfo === "custom") {
-                // todo. shouldn't this rather be a moment format? addMomentFormat
+                // todo. in future perhaps directly use addMomentFormat
                 dateTimeFormatCustomStringSetting
                     .setDesc(this.getQuickPreviewCustomDateTimeDescription(plugin))
                     .addText((cb) => {
