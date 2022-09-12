@@ -21,7 +21,7 @@ export const worthWalking = (filepath: string, root: string) => {
  * During runtime, an error will be thrown, if executed.
  */
 export function typeCheckedUnreachable(x: never): never {
-  throw new Error("Imposible branch: " + x);
+    throw new Error("Impossible branch: " + x);
 }
 
 export function epochSecondsNow(): Moment {

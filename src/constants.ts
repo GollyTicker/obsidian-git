@@ -2,13 +2,13 @@ import { Platform } from "obsidian";
 import { ObsidianGitSettings } from "./types";
 
 export const DATE_FORMAT = "YYYY-MM-DD";
-export const DATE_TIME_FROMAT_MINUTES = `${DATE_FORMAT} HH:mm`;
-export const DATE_TIME_FROMAT_SECONDS = `${DATE_FORMAT} HH:mm:ss`;
+export const DATE_TIME_FORMAT_MINUTES = `${DATE_FORMAT} HH:mm`;
+export const DATE_TIME_FORMAT_SECONDS = `${DATE_FORMAT} HH:mm:ss`;
 
 export const DEFAULT_SETTINGS: ObsidianGitSettings = {
     commitMessage: "vault backup: {{date}}",
     autoCommitMessage: undefined, // default undefined for settings migration
-    commitDateFormat: DATE_TIME_FROMAT_SECONDS,
+    commitDateFormat: DATE_TIME_FORMAT_SECONDS,
     autoSaveInterval: 0,
     autoPushInterval: 0,
     autoPullInterval: 0,
@@ -36,7 +36,7 @@ export const DEFAULT_SETTINGS: ObsidianGitSettings = {
     authorDisplayLineAuthorInfo: "full",
     showCommitHashLineAuthorInfo: false,
     dateTimeFormatOptionsLineAuthorInfo: "date",
-    dateTimeFormatCustomStringLineAuthorInfo: DATE_TIME_FROMAT_MINUTES,
+    dateTimeFormatCustomStringLineAuthorInfo: DATE_TIME_FORMAT_MINUTES,
     dateTimeTimezoneLineAuthorInfo: "local",
     coloringMaxAgeLineAuthorInfo: "1y",
     // colors were picked via:

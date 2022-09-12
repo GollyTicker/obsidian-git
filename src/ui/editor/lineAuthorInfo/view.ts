@@ -1,6 +1,6 @@
 import { gutter, GutterMarker } from "@codemirror/view";
 import * as moment from "moment";
-import { DATE_FORMAT, DATE_TIME_FROMAT_MINUTES } from "src/constants";
+import { DATE_FORMAT, DATE_TIME_FORMAT_MINUTES } from "src/constants";
 import { parseColoringMaxAgeDuration } from "src/settings";
 import {
   Blame,
@@ -271,7 +271,7 @@ function authoringDate(
       dateTimeFormat = DATE_FORMAT;
       break;
     case "datetime":
-      dateTimeFormat = DATE_TIME_FROMAT_MINUTES;
+      dateTimeFormat = DATE_TIME_FORMAT_MINUTES;
       break;
     case "custom":
       dateTimeFormat = settings.dateTimeFormatCustomString;

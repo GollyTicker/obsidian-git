@@ -1,6 +1,6 @@
 import * as moment from "moment";
 import { Notice, Platform, PluginSettingTab, Setting } from "obsidian";
-import { DATE_TIME_FROMAT_SECONDS } from "src/constants";
+import { DATE_TIME_FORMAT_SECONDS } from "src/constants";
 import { lineAuthoringAvailableOnCurrentPlatform } from "src/ui/editor/lineAuthorInfo/lineAuthorInfoProvider";
 import { epochSecondsNow, rgbToString } from "src/utils";
 import { IsomorphicGit } from "./isomorphicGit";
@@ -201,7 +201,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
 
             new Setting(containerEl)
                 .setName("{{date}} placeholder format")
-                .setDesc(`Specify custom date format. E.g. "${DATE_TIME_FROMAT_SECONDS}"`)
+                .setDesc(`Specify custom date format. E.g. "${DATE_TIME_FORMAT_SECONDS}"`)
                 .addText((text) =>
                     text
                         .setPlaceholder(plugin.settings.commitDateFormat)
