@@ -2,7 +2,7 @@ import * as moment from "moment";
 import { Notice, Platform, PluginSettingTab, Setting } from "obsidian";
 import { DATE_TIME_FROMAT_SECONDS } from "src/constants";
 import { lineAuthoringAvailableOnCurrentPlatform } from "src/ui/editor/lineAuthorInfo/lineAuthorInfoProvider";
-import { epochSecondsNow } from "src/utils";
+import { epochSecondsNow, rgbToString } from "src/utils";
 import { IsomorphicGit } from "./isomorphicGit";
 import ObsidianGit from "./main";
 import { SimpleGit } from "./simpleGit";
@@ -518,7 +518,6 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
     }
 
     private addLineAuthorInfoSettings(containerEl: HTMLElement, plugin: ObsidianGit) {
-        // todo. add color pickers for configurable age colors.
         const baseLineAuthorInfoSetting = new Setting(containerEl)
             .setName("Show commit authoring information next to each line (git-blame)");
 
@@ -657,7 +656,22 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                         plugin.saveSettings();
                         plugin.refreshLineAuthorViews();
                     })
+                });
+
+            new Setting(containerEl)
+                .setName("Age-based colors")
+                .setDesc("todo")
+                .addText((text) => {
+                    text.setPlaceholder(rgbToString(plugin.settings.colorNewLineAuthorInfo));
+                    text.setValue(rgbToString(plugin.settings.colorNewLineAuthorInfo));
+                    text.onChange((colorNew) => {
+                        console.log("new value", colorNew);
+                        // plugin.settings.colorNewLineAuthorInfo = colorNew;
+                    })
                 })
+
+            // todo. add color pickers for configurable age colors.
+
         }
     }
 

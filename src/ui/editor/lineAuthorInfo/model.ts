@@ -6,7 +6,7 @@ import {
   Transaction
 } from "@codemirror/state";
 import * as moment from "moment";
-import { editorViewField } from "obsidian";
+import { editorViewField, RGB } from "obsidian";
 import {
   Blame,
   BlameCommit,
@@ -129,6 +129,8 @@ export type LineAuthorSettings = {
   dateTimeFormatCustomString: string;
   dateTimeTimezone: LineAuthorTimezoneOption;
   coloringMaxAge: string;
+  colorOld: RGB;
+  colorNew: RGB;
 };
 
 export function settingsFrom(
@@ -142,6 +144,8 @@ export function settingsFrom(
       settings.dateTimeFormatCustomStringLineAuthorInfo,
     dateTimeTimezone: settings.dateTimeTimezoneLineAuthorInfo,
     coloringMaxAge: settings.coloringMaxAgeLineAuthorInfo,
+    colorOld: settings.colorOldLineAuthorInfo,
+    colorNew: settings.colorNewLineAuthorInfo,
   };
 }
 

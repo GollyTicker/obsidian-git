@@ -1,5 +1,6 @@
 import * as moment from "moment";
 import { Moment } from "moment";
+import { RGB } from "obsidian";
 
 export const worthWalking = (filepath: string, root: string) => {
   if (filepath === "." || root == null || root.length === 0 || root === ".") {
@@ -25,4 +26,8 @@ export function typeCheckedUnreachable(x: never): never {
 
 export function epochSecondsNow(): Moment {
   return moment.unix(Date.now() / 1000);
+}
+
+export function rgbToString(rgb: RGB): string {
+  return `rgba(${rgb.r},${rgb.g},${rgb.b})`;
 }

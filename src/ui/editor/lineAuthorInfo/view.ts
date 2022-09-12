@@ -318,10 +318,8 @@ function commitAuthoringAgeBasedColor(
 
   const dark = isDarkMode();
 
-  // colors were picked via:
-  // https://color.adobe.com/de/create/color-accessibility
-  const color0 = { r: 255, g: 150, b: 150 };
-  const color1 = { r: 120, g: 160, b: 255 };
+  const color0 = settings.colorNew;
+  const color1 = settings.colorOld;
 
   const scaling = dark ? 0.4 : 1;
   const r = lin(color0.r, color1.r, x) * scaling;

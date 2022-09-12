@@ -1,3 +1,4 @@
+import { RGB } from "obsidian";
 
 export interface ObsidianGitSettings {
     commitMessage: string;
@@ -41,6 +42,8 @@ export interface ObsidianGitSettings {
     dateTimeFormatCustomStringLineAuthorInfo: string;
     dateTimeTimezoneLineAuthorInfo: LineAuthorTimezoneOption;
     coloringMaxAgeLineAuthorInfo: string;
+    colorOldLineAuthorInfo: RGB;
+    colorNewLineAuthorInfo: RGB;
 }
 
 export type LineAuthorDateTimeFormatOptions = "hide" | "date" | "datetime" | "natural language" | "custom";

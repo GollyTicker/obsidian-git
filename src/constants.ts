@@ -30,6 +30,8 @@ export const DEFAULT_SETTINGS: ObsidianGitSettings = {
     username: "",
     showedMobileNotice: false,
     refreshSourceControlTimer: 7000,
+
+    // Line Author Info
     showLineAuthorInfo: false,
     authorDisplayLineAuthorInfo: "full",
     showCommitHashLineAuthorInfo: false,
@@ -37,6 +39,10 @@ export const DEFAULT_SETTINGS: ObsidianGitSettings = {
     dateTimeFormatCustomStringLineAuthorInfo: DATE_TIME_FROMAT_MINUTES,
     dateTimeTimezoneLineAuthorInfo: "local",
     coloringMaxAgeLineAuthorInfo: "1y",
+    // colors were picked via:
+    // https://color.adobe.com/de/create/color-accessibility
+    colorOldLineAuthorInfo: { r: 255, g: 150, b: 150 },
+    colorNewLineAuthorInfo: { r: 120, g: 160, b: 255 },
 };
 
 export const GIT_VIEW_CONFIG = {
