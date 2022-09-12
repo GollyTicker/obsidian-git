@@ -518,6 +518,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
     }
 
     private addLineAuthorInfoSettings(containerEl: HTMLElement, plugin: ObsidianGit) {
+        // todo. add color pickers for configurable age colors.
         const baseLineAuthorInfoSetting = new Setting(containerEl)
             .setName("Show commit authoring information next to each line (git-blame)");
 
