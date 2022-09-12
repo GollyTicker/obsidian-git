@@ -242,7 +242,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                             plugin.saveSettings();
                         })
                 );
-            
+
             containerEl.createEl("br");
             containerEl.createEl("h3", { text: "Backup" });
 
@@ -302,9 +302,9 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                             plugin.saveSettings();
                         })
                 );
-            
+
             containerEl.createEl("br");
-            containerEl.createEl("h3", { text: "Line author information"});
+            containerEl.createEl("h3", { text: "Line author information" });
 
             this.addLineAuthorInfoSettings(containerEl, plugin);
         }
@@ -645,7 +645,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
             const oldestAgeSetting = new Setting(containerEl)
                 .setName("Oldest age in coloring")
                 .setDesc(this.getQuickPreviewOldestAgeDescription(plugin));
-            
+
             oldestAgeSetting
                 .addText((text) => {
                     text.setPlaceholder("1y");
@@ -655,7 +655,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                         oldestAgeSetting.setDesc(this.getQuickPreviewOldestAgeDescription(plugin));
                         plugin.saveSettings();
                         plugin.refreshLineAuthorViews();
-                    })
+                    });
                 });
 
             new Setting(containerEl)
@@ -667,8 +667,8 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                     text.onChange((colorNew) => {
                         console.log("new value", colorNew);
                         // plugin.settings.colorNewLineAuthorInfo = colorNew;
-                    })
-                })
+                    });
+                });
 
             // todo. add color pickers for configurable age colors.
 

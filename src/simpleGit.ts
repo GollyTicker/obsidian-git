@@ -106,20 +106,20 @@ export class SimpleGit extends GitManager {
         if (!await this.isTracked(path)) return "untracked";
 
         const inSubmodule = await this.getSubmoduleOfFile(path);
-        const args = inSubmodule ? ["-C",inSubmodule.submodule] : [];
+        const args = inSubmodule ? ["-C", inSubmodule.submodule] : [];
         const relativePath = inSubmodule ? inSubmodule.relativeFilepath : path;
 
-        args.push("blame","--porcelain","--",relativePath);
-        return this.git.raw(args, err => err && console.warn("git-blame", err))
-            .then(parseBlame);
+        args.push("blame", "--porcelain", "--", relativePath);
+        const rawBlame = await this.git.raw(args, err => err && console.warn("git-blame", err));
+        return parseBlame(rawBlame);
     }
 
     async isTracked(path: string): Promise<boolean> {
         const inSubmodule = await this.getSubmoduleOfFile(path);
-        const args = inSubmodule ? ["-C",inSubmodule.submodule] : [];
+        const args = inSubmodule ? ["-C", inSubmodule.submodule] : [];
         const relativePath = inSubmodule ? inSubmodule.relativeFilepath : path;
 
-        args.push("ls-files","--",relativePath);
+        args.push("ls-files", "--", relativePath);
         return this.git.raw(args, err => err && console.warn("ls-files", err))
             .then(x => x.trim() !== "");
     }
@@ -462,19 +462,19 @@ export class SimpleGit extends GitManager {
         return (await this.git.diff([`${commit1}..${commit2}`, "--", file]));
     }
 
-    async getSubmoduleOfFile(filepath: string): Promise<{submodule: string; relativeFilepath: string; } | undefined> {
+    async getSubmoduleOfFile(filepath: string): Promise<{ submodule: string; relativeFilepath: string; } | undefined> {
         // git -C <dir-of-file> rev-parse --show-superproject-working-tree
         // returns the parent git repository, if the file is in a submodule - otherwise empty.
         // git -C <dir-of-file> rev-parse --show-toplevel
         // returns the submodules repository root as an absolute path
         // https://git-scm.com/docs/git-rev-parse#Documentation/git-rev-parse.txt---show-superproject-working-tree
         let root = await this.git.raw(
-                ["-C", path.dirname(filepath),"rev-parse","--show-toplevel"],
+            ["-C", path.dirname(filepath), "rev-parse", "--show-toplevel"],
             (err) => err && console.warn("get-submodule-of-file", err?.message));
         root = root.trim();
 
         const superProject = await this.git.raw(
-            ["-C", path.dirname(filepath),"rev-parse","--show-superproject-working-tree"],
+            ["-C", path.dirname(filepath), "rev-parse", "--show-superproject-working-tree"],
             (err) => err && console.warn("get-submodule-of-file", err?.message));
 
         if (superProject.trim() === "") {
@@ -485,7 +485,7 @@ export class SimpleGit extends GitManager {
         const absolutePath = fsAdapter.getFullPath(path.normalize(filepath));
         const newRelativePath = path.relative(root, absolutePath);
 
-        return {submodule: root, relativeFilepath: newRelativePath};
+        return { submodule: root, relativeFilepath: newRelativePath };
     }
 
     private isGitInstalled(): boolean {
@@ -521,10 +521,10 @@ export class SimpleGit extends GitManager {
 
 // Parse git blame porcelain format: https://git-scm.com/docs/git-blame#_the_porcelain_format
 function parseBlame(blameOutputUnnormalized: string): Blame {
-    const blameOutput = blameOutputUnnormalized.replace("\r\n","\n");
+    const blameOutput = blameOutputUnnormalized.replace("\r\n", "\n");
 
-    const blameLines = blameOutput.split("\n")
-    
+    const blameLines = blameOutput.split("\n");
+
     const result: Blame = {
         commits: new Map(),
         hashPerLine: [undefined], // one-based indices
@@ -532,9 +532,9 @@ function parseBlame(blameOutputUnnormalized: string): Blame {
         finalFileLineNrPerLine: [undefined],
         groupSizePerStartingLine: new Map(),
     };
-    
+
     let line = 1;
-    for (let bi=0; bi<blameLines.length;) {
+    for (let bi = 0; bi < blameLines.length;) {
 
         if (startsWithNonWhitespace(blameLines[bi])) {
             const lineInfo = blameLines[bi].split(" ");
@@ -551,11 +551,9 @@ function parseBlame(blameOutputUnnormalized: string): Blame {
 
             // skip tab prefixed line
             line += 1;
-        }
-        else if (blameLines[bi] === "" && bi === blameLines.length-1 ) {
+        } else if (blameLines[bi] === "" && bi === blameLines.length - 1) {
             // EOF
-        }
-        else {
+        } else {
             throw Error(`Expected non-whitespace line or EOF, but found: ${blameLines[bi]}`);
         }
         bi++;
@@ -580,10 +578,10 @@ function parseLineInfoInto(lineInfo: string[], line: number, result: Blame) {
 function parseHeaderInto(header: string[], out: Blame, line: number) {
     const key = header[0];
     const commitHash = out.hashPerLine[line];
-    const commit = out.commits.get(commitHash) || 
-        <BlameCommit>{hash: commitHash, author: {}, committer: {}, previous: {}};
+    const commit = out.commits.get(commitHash) ||
+        <BlameCommit>{ hash: commitHash, author: {}, committer: {}, previous: {} };
 
-    switch(key) {
+    switch (key) {
         case "summary": commit.summary = header.slice(1).join(" "); break;
 
         case "author": commit.author.name = header[1]; break;
@@ -630,5 +628,5 @@ function startsWithNonWhitespace(str: string): boolean {
 
 function removeEmailBrackets(gitEmail: string) {
     const prefixCleaned = gitEmail.startsWith("<") ? gitEmail.substring(1) : gitEmail;
-    return prefixCleaned.endsWith(">") ? prefixCleaned.substring(0,prefixCleaned.length-1) : prefixCleaned;
+    return prefixCleaned.endsWith(">") ? prefixCleaned.substring(0, prefixCleaned.length - 1) : prefixCleaned;
 }

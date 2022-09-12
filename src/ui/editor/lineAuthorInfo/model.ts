@@ -1,19 +1,19 @@
 import {
-  Annotation,
-  AnnotationType,
-  EditorState,
-  StateField,
-  Transaction
+    Annotation,
+    AnnotationType,
+    EditorState,
+    StateField,
+    Transaction
 } from "@codemirror/state";
 import * as moment from "moment";
 import { editorViewField, RGB } from "obsidian";
 import {
-  Blame,
-  BlameCommit,
-  LineAuthorDateTimeFormatOptions,
-  LineAuthorDisplay,
-  LineAuthorTimezoneOption,
-  ObsidianGitSettings
+    Blame,
+    BlameCommit,
+    LineAuthorDateTimeFormatOptions,
+    LineAuthorDisplay,
+    LineAuthorTimezoneOption,
+    ObsidianGitSettings
 } from "src/types";
 import { epochSecondsNow } from "src/utils";
 
@@ -54,14 +54,14 @@ export type LineAuthoringId = string;
 
 /** todo. */
 export function lineAuthoringId(
-  head: string,
-  objHash: string,
-  path: string
+    head: string,
+    objHash: string,
+    path: string
 ): string | undefined {
-  if (head === undefined || objHash === undefined || path === undefined) {
-    return undefined;
-  }
-  return "head" + head + "-obj" + objHash + "-path" + path;
+    if (head === undefined || objHash === undefined || path === undefined) {
+        return undefined;
+    }
+    return "head" + head + "-obj" + objHash + "-path" + path;
 }
 
 // =========================================================
@@ -71,104 +71,104 @@ export function lineAuthoringId(
 type LineAuthorAvailable = [LineAuthoringId, LineAuthoring];
 
 const LineAuthorAvailableType: AnnotationType<LineAuthorAvailable> =
-  Annotation.define<LineAuthorAvailable>();
+    Annotation.define<LineAuthorAvailable>();
 
 export type OptLineAuthoring = [LineAuthoringId, LineAuthoring] | undefined;
 
 export function newComputationResultAsTransaction(
-  key: LineAuthoringId,
-  result: LineAuthoring,
-  state: EditorState
+    key: LineAuthoringId,
+    result: LineAuthoring,
+    state: EditorState
 ): Transaction {
-  return state.update({
-    annotations: LineAuthorAvailableType.of([key, result]),
-  });
+    return state.update({
+        annotations: LineAuthorAvailableType.of([key, result]),
+    });
 }
 
 export function getLineAuthorAnnotation(tr: Transaction): OptLineAuthoring {
-  return tr.annotation(LineAuthorAvailableType);
+    return tr.annotation(LineAuthorAvailableType);
 }
 
 // =========================================================
 export const LineAuthorSettingsAvailableType: AnnotationType<LineAuthorSettings> =
-  Annotation.define<LineAuthorSettings>();
+    Annotation.define<LineAuthorSettings>();
 
 export function newSettingsAsTransaction(
-  settings: LineAuthorSettings,
-  state: EditorState
+    settings: LineAuthorSettings,
+    state: EditorState
 ): Transaction {
-  return state.update({
-    annotations: LineAuthorSettingsAvailableType.of(settings),
-  });
+    return state.update({
+        annotations: LineAuthorSettingsAvailableType.of(settings),
+    });
 }
 
 // =========================================================
 
 /** todo. */
 export const lineAuthorState: StateField<OptLineAuthoring> =
-  StateField.define<OptLineAuthoring>({
-    create: (_state) => undefined,
-    update(previousValue, transaction) {
-      // We always show the newest thing here. concurrent changes are ignored.
-      return getLineAuthorAnnotation(transaction) ?? previousValue;
-    },
-    compare: (l, r) => l?.[0] === r?.[0], // compare cache keys.
-  });
+    StateField.define<OptLineAuthoring>({
+        create: (_state) => undefined,
+        update(previousValue, transaction) {
+            // We always show the newest thing here. concurrent changes are ignored.
+            return getLineAuthorAnnotation(transaction) ?? previousValue;
+        },
+        compare: (l, r) => l?.[0] === r?.[0], // compare cache keys.
+    });
 
 /** todo. */
 export function getObsidianFilepath(state: EditorState): string | undefined {
-  return state.field(editorViewField, false)?.file?.path;
+    return state.field(editorViewField, false)?.file?.path;
 }
 
 // =================================================
 
 export type LineAuthorSettings = {
-  showCommitHash: boolean;
-  authorDisplay: LineAuthorDisplay;
-  dateTimeFormatOptions: LineAuthorDateTimeFormatOptions;
-  dateTimeFormatCustomString: string;
-  dateTimeTimezone: LineAuthorTimezoneOption;
-  coloringMaxAge: string;
-  colorOld: RGB;
-  colorNew: RGB;
+    showCommitHash: boolean;
+    authorDisplay: LineAuthorDisplay;
+    dateTimeFormatOptions: LineAuthorDateTimeFormatOptions;
+    dateTimeFormatCustomString: string;
+    dateTimeTimezone: LineAuthorTimezoneOption;
+    coloringMaxAge: string;
+    colorOld: RGB;
+    colorNew: RGB;
 };
 
 export function settingsFrom(
-  settings: ObsidianGitSettings
+    settings: ObsidianGitSettings
 ): LineAuthorSettings {
-  return {
-    showCommitHash: settings.showCommitHashLineAuthorInfo,
-    authorDisplay: settings.authorDisplayLineAuthorInfo,
-    dateTimeFormatOptions: settings.dateTimeFormatOptionsLineAuthorInfo,
-    dateTimeFormatCustomString:
-      settings.dateTimeFormatCustomStringLineAuthorInfo,
-    dateTimeTimezone: settings.dateTimeTimezoneLineAuthorInfo,
-    coloringMaxAge: settings.coloringMaxAgeLineAuthorInfo,
-    colorOld: settings.colorOldLineAuthorInfo,
-    colorNew: settings.colorNewLineAuthorInfo,
-  };
+    return {
+        showCommitHash: settings.showCommitHashLineAuthorInfo,
+        authorDisplay: settings.authorDisplayLineAuthorInfo,
+        dateTimeFormatOptions: settings.dateTimeFormatOptionsLineAuthorInfo,
+        dateTimeFormatCustomString:
+            settings.dateTimeFormatCustomStringLineAuthorInfo,
+        dateTimeTimezone: settings.dateTimeTimezoneLineAuthorInfo,
+        coloringMaxAge: settings.coloringMaxAgeLineAuthorInfo,
+        colorOld: settings.colorOldLineAuthorInfo,
+        colorNew: settings.colorNewLineAuthorInfo,
+    };
 }
 
 // ===============================================================
 
 export type LineAuthorGutterContextMenuMetadata = {
-  creationTime: moment.Moment;
-  hash: string;
-  commit: BlameCommit;
-  start: number;
-  end: number;
+    creationTime: moment.Moment;
+    hash: string;
+    commit: BlameCommit;
+    start: number;
+    end: number;
 };
 
 export const zeroCommit: BlameCommit = {
-  hash: "000000",
-  isZeroCommit: true,
-  summary: "",
+    hash: "000000",
+    isZeroCommit: true,
+    summary: "",
 };
 
 export let latestClickedLineAuthorGutter: LineAuthorGutterContextMenuMetadata = {
-  hash: "000000",
-  start: 1,
-  end: 1,
-  creationTime: epochSecondsNow(),
-  commit: zeroCommit
+    hash: "000000",
+    start: 1,
+    end: 1,
+    creationTime: epochSecondsNow(),
+    commit: zeroCommit
 };

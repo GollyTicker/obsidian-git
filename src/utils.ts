@@ -3,14 +3,14 @@ import { Moment } from "moment";
 import { RGB } from "obsidian";
 
 export const worthWalking = (filepath: string, root: string) => {
-  if (filepath === "." || root == null || root.length === 0 || root === ".") {
-    return true;
-  }
-  if (root.length >= filepath.length) {
-    return root.startsWith(filepath);
-  } else {
-    return filepath.startsWith(root);
-  }
+    if (filepath === "." || root == null || root.length === 0 || root === ".") {
+        return true;
+    }
+    if (root.length >= filepath.length) {
+        return root.startsWith(filepath);
+    } else {
+        return filepath.startsWith(root);
+    }
 };
 
 /**
@@ -25,7 +25,7 @@ export function typeCheckedUnreachable(x: never): never {
 }
 
 export function epochSecondsNow(): Moment {
-  return moment.unix(Date.now() / 1000);
+    return moment.unix(Date.now() / 1000);
 }
 
 export function rgbToString(rgb: RGB): string {

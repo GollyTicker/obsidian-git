@@ -3,7 +3,6 @@ import { debounce, Debouncer, Editor, EventRef, MarkdownView, Menu, normalizePat
 import { PromiseQueue } from "src/promiseQueue";
 import { ObsidianGitSettingsTab } from "src/settings";
 import { StatusBar } from "src/statusBar";
-import { } from "src/ui/editor/lineAuthorInfo/control";
 import { enabledLineAuthorInfoExtensions, LineAuthorInfoProvider, lineAuthoringAvailableOnCurrentPlatform } from "src/ui/editor/lineAuthorInfo/lineAuthorInfoProvider";
 import { latestClickedLineAuthorGutter } from "src/ui/editor/lineAuthorInfo/model";
 import { ChangedFilesModal } from "src/ui/modals/changedFilesModal";
@@ -50,7 +49,6 @@ export default class ObsidianGit extends Plugin {
     lineAuthorRefreshOnCssChangeEvent: EventRef;
     lineAuthorGutterContextMenuEvent: EventRef;
     lineAuthorInfoCmExtensions: Extension[] = [];
-    
 
     debRefresh: Debouncer<undefined, void>;
 
@@ -979,7 +977,7 @@ export default class ObsidianGit extends Plugin {
 
                 const lineAuthorGutterWasRecentlyClicked = epochSecondsNow()
                     .diff(latestClickedLineAuthorGutter.creationTime, "milliseconds") <= 300;
-                    
+
                 if (!lineAuthorGutterWasRecentlyClicked) return;
 
                 // zero commit need not be copied
@@ -1027,7 +1025,7 @@ export default class ObsidianGit extends Plugin {
             const obsView = (<any>leaf?.view);
             const file = obsView?.file;
             if (!file || obsView?.allowNoFile || !this?.lineAuthorInfoProvider) return;
-            
+
             console.log("Initially registering: ", file?.path);
             this.lineAuthorInfoProvider.trackChanged(file);
         });
@@ -1080,7 +1078,7 @@ export default class ObsidianGit extends Plugin {
     }
 
     public refreshLineAuthorViews() {
-        if(this.settings.showLineAuthorInfo) {
+        if (this.settings.showLineAuthorInfo) {
             this.deinitLineAuthorFunctionality();
             this.initLineAuthorFunctionality();
         }
