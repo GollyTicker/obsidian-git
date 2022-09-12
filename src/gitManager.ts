@@ -77,7 +77,7 @@ export abstract class GitManager {
 
     abstract getDiffString(filePath: string, stagedChanges: boolean): Promise<string>;
 
-    abstract getSubmoduleOfFile(filepath: string): Promise<{submodule: string; relativeFilepath: string; } | undefined>;
+    abstract getSubmoduleOfFile(filepath: string): Promise<{ submodule: string; relativeFilepath: string; } | undefined>;
 
     getVaultPath(path: string): string {
         if (this.plugin.settings.basePath) {

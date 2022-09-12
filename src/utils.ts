@@ -29,5 +29,5 @@ export function epochSecondsNow(): Moment {
 }
 
 export function rgbToString(rgb: RGB): string {
-  return `rgba(${rgb.r},${rgb.g},${rgb.b})`;
+    return `rgba(${rgb.r},${rgb.g},${rgb.b})`;
 }

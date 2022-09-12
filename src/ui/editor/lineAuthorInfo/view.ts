@@ -50,7 +50,7 @@ note. line authorinfo only in surce and live preview mode.
 export const lineAuthorGutter = gutter({
     class: "gutter-wip-class",
     // todo. use this to style entire gutter v-line. i.e. styling of alignment
-    
+
     lineMarker(view, line, _otherMarkers) {
         const lineAuthoring = view.state.field(lineAuthorState, false);
         const settings: LineAuthorSettings = view.state.field(
