@@ -1,8 +1,9 @@
 import * as moment from "moment";
-import { Notice, Platform, PluginSettingTab, Setting } from "obsidian";
+import { Notice, Platform, PluginSettingTab, RGB, Setting } from "obsidian";
 import { DATE_TIME_FORMAT_SECONDS, GIT_LINE_AUTHORING_MOVEMENT_DETECTION_MINIMAL_LENGTH } from "src/constants";
-import { lineAuthoringAvailableOnCurrentPlatform } from "src/ui/editor/lineAuthorInfo/lineAuthorInfoProvider";
-import { epochSecondsNow, rgbToString } from "src/utils";
+import { lineAuthoringAvailableOnCurrentPlatform, previewColor } from "src/ui/editor/lineAuthorInfo/lineAuthorInfoProvider";
+import { settingsFrom } from "src/ui/editor/lineAuthorInfo/model";
+import { convertToRgb, epochSecondsNow, rgbToString } from "src/utils";
 import { IsomorphicGit } from "./isomorphicGit";
 import ObsidianGit from "./main";
 import { SimpleGit } from "./simpleGit";
@@ -685,21 +686,48 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                     });
                 });
 
-            new Setting(containerEl)
-                .setName("Age-based colors")
-                .setDesc("todo")
-                .addText((text) => {
-                    text.setPlaceholder(rgbToString(plugin.settings.colorNewLineAuthorInfo));
-                    text.setValue(rgbToString(plugin.settings.colorNewLineAuthorInfo));
-                    text.onChange((colorNew) => {
-                        console.log("new value", colorNew);
-                        // plugin.settings.colorNewLineAuthorInfo = colorNew;
-                    });
-                });
-
-            // todo. add color pickers for configurable age colors.
-
+            this.createColorSetting("recent", containerEl, plugin);
+            this.createColorSetting("older", containerEl, plugin);
         }
+    }
+
+    private createColorSetting(which: "older" | "recent", containerEl: HTMLElement, plugin: ObsidianGit) {
+        const setting = new Setting(containerEl)
+            .setName(`Color for ${which} commits`)
+            .addText((text) => {
+                const color = which === "recent" ? plugin.settings.colorNewLineAuthorInfo : plugin.settings.colorOldLineAuthorInfo;
+                text.setPlaceholder(rgbToString(color));
+                text.setValue(rgbToString(color));
+                text.onChange((colorNew) => {
+                    const rgb = convertToRgb(colorNew);
+                    if (rgb !== undefined) {
+                        if (which === "recent") {
+                            plugin.settings.colorNewLineAuthorInfo = rgb;
+                        }
+                        else {
+                            plugin.settings.colorOldLineAuthorInfo = rgb;
+                        }
+                        plugin.saveSettings();
+                        plugin.refreshLineAuthorViews();
+                        setting.descEl.innerHTML = this.colorSettingDescHtml(which, plugin);
+                    }
+                });
+            });
+        setting.descEl.innerHTML = this.colorSettingDescHtml(which, plugin);
+    }
+
+    private colorSettingDescHtml(which: "older" | "recent", plugin: ObsidianGit): string {
+        const rgbStr = previewColor(which, settingsFrom(plugin.settings));
+
+        const preview = rgbStr ? `<div
+                class=\"line-author-settings-preview\"
+                style=\"background-color: ${rgbStr}; width: 25ch;\">
+                123456 Author 2000-01-23
+            </div>`
+            : "<em>invalid color!</em>";
+
+        return `Supports 'rgb(r,g,b)', 'hsl(h,s,l)', hex (#) and
+            named colors (e.g. 'black', 'purple'). Quick preview: ${preview}`; // todo. make preview realistic!
     }
 
     private getQuickPreviewCustomDateTimeDescription(plugin: ObsidianGit) {

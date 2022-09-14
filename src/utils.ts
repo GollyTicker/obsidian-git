@@ -1,6 +1,7 @@
 import * as moment from "moment";
 import { Moment } from "moment";
 import { RGB } from "obsidian";
+import * as cssColorConverter from "css-color-converter";
 
 export const worthWalking = (filepath: string, root: string) => {
     if (filepath === "." || root == null || root.length === 0 || root === ".") {
@@ -29,5 +30,14 @@ export function epochSecondsNow(): Moment {
 }
 
 export function rgbToString(rgb: RGB): string {
-    return `rgba(${rgb.r},${rgb.g},${rgb.b})`;
+    return `rgb(${rgb.r},${rgb.g},${rgb.b})`;
+}
+
+export function convertToRgb(str: string): RGB {
+    const color = cssColorConverter.fromString(str)?.toRgbaArray();
+    if (color === undefined) {
+        return undefined;
+    }
+    const [r, g, b, _a] = color;
+    return { r, g, b };
 }

@@ -44,8 +44,8 @@ export const DEFAULT_SETTINGS: ObsidianGitSettings = {
     coloringMaxAgeLineAuthorInfo: "1y",
     // colors were picked via:
     // https://color.adobe.com/de/create/color-accessibility
-    colorOldLineAuthorInfo: { r: 120, g: 160, b: 255 },
     colorNewLineAuthorInfo: { r: 255, g: 150, b: 150 },
+    colorOldLineAuthorInfo: { r: 120, g: 160, b: 255 },
 };
 
 export const GIT_VIEW_CONFIG = {

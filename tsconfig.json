@@ -14,6 +14,10 @@
             "es2016",
             "scripthost",
             "es2015"
+        ],
+        "typeRoots": [
+          "src",
+          "node_modules/@types"
         ]
     },
     "include": [

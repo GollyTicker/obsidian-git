@@ -16,6 +16,8 @@ import {
     settingsFrom
 } from "src/ui/editor/lineAuthorInfo/model";
 import { lineAuthorGutter } from "src/ui/editor/lineAuthorInfo/view";
+import { previewColor as previewColor2 } from "src/ui/editor/lineAuthorInfo/view";
+export const previewColor = previewColor2;
 
 /** todo. */
 export class LineAuthorInfoProvider {

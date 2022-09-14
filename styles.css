@@ -474,7 +474,7 @@
   background-color: var(--background-secondary);
 }
 
-.cm-gutterElement.obs-git-blame-gutter > div {
+.cm-gutterElement.obs-git-blame-gutter > div, .line-author-settings-preview {
   color: var(--text-muted); /* less pronounced text to be similar to line numbers */
   font-family: monospace;
   font-weight: 600; /* line info is more important than line number. hence emphasis */

@@ -5,6 +5,7 @@ import { parseColoringMaxAgeDuration } from "src/settings";
 import {
     Blame,
     BlameCommit,
+    GitTimestamp,
     LineAuthorDateTimeFormatOptions,
     LineAuthorDisplay
 } from "src/types";
@@ -236,7 +237,8 @@ class LineAuthoringGutter extends GutterMarker {
 
         // Add basic color based on commit age
         node.style.backgroundColor = commitAuthoringAgeBasedColor(
-            commit,
+            commit?.author?.epochSeconds,
+            commit?.isZeroCommit,
             this.settings
         );
 
@@ -333,17 +335,24 @@ function authoringDate(
     return authoringDate.format(dateTimeFormat);
 }
 
+export function previewColor(which: "older" | "recent", settings: LineAuthorSettings) {
+    return which === "older" ?
+        commitAuthoringAgeBasedColor(0 /* epoch time: 1970 */, false, settings) :
+        commitAuthoringAgeBasedColor(undefined, true, settings)
+}
+
 function commitAuthoringAgeBasedColor(
-    commit: BlameCommit,
+    commitAuthorEpochSeonds: GitTimestamp["epochSeconds"],
+    isZeroCommit: boolean,
     settings: LineAuthorSettings
 ): string {
     const maxAgeInDays =
         parseColoringMaxAgeDuration(settings.coloringMaxAge)?.asDays() ?? 356;
 
     const epochSecondsNow = Date.now() / 1000;
-    const authoringEpochSeconds = commit?.author?.epochSeconds ?? 0;
+    const authoringEpochSeconds = commitAuthorEpochSeonds ?? 0;
 
-    const secondsSinceCommit = commit.isZeroCommit
+    const secondsSinceCommit = isZeroCommit
         ? 0
         : epochSecondsNow - authoringEpochSeconds;
 
