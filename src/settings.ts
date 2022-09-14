@@ -1,12 +1,12 @@
 import * as moment from "moment";
 import { Notice, Platform, PluginSettingTab, Setting } from "obsidian";
-import { DATE_TIME_FORMAT_SECONDS } from "src/constants";
+import { DATE_TIME_FORMAT_SECONDS, GIT_LINE_AUTHORING_MOVEMENT_DETECTION_MINIMAL_LENGTH } from "src/constants";
 import { lineAuthoringAvailableOnCurrentPlatform } from "src/ui/editor/lineAuthorInfo/lineAuthorInfoProvider";
 import { epochSecondsNow, rgbToString } from "src/utils";
 import { IsomorphicGit } from "./isomorphicGit";
 import ObsidianGit from "./main";
 import { SimpleGit } from "./simpleGit";
-import { LineAuthorDateTimeFormatOptions, LineAuthorDisplay, LineAuthorTimezoneOption, SyncMethod } from "./types";
+import { LineAuthorDateTimeFormatOptions, LineAuthorDisplay, LineAuthorTimezoneOption, LineAuthorFollowMovement, SyncMethod } from "./types";
 
 export class ObsidianGitSettingsTab extends PluginSettingTab {
     display(): void {
@@ -521,7 +521,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
         const baseLineAuthorInfoSetting = new Setting(containerEl)
             .setName("Show commit authoring information next to each line (git-blame)");
 
-        if (!lineAuthoringAvailableOnCurrentPlatform) {
+        if (!lineAuthoringAvailableOnCurrentPlatform(plugin)) {
             baseLineAuthorInfoSetting
                 .setDesc("Only available on desktop currently.")
                 .setDisabled(true);
@@ -540,6 +540,33 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
             );
 
         if (plugin.settings.showLineAuthorInfo) {
+
+            const trackMovement = new Setting(containerEl)
+                .setName("Follow movement and copies across files and commits")
+                .setDesc("")
+                .addDropdown((dropdown) => {
+                    dropdown.addOptions(<Record<LineAuthorFollowMovement, string>>{
+                        "inactive": "Do not follow (default)",
+                        "same-commit": "Follow within same commit",
+                        "all-commits": "Follow within all commits (maybe slow)",
+                    });
+                    dropdown.setValue(plugin.settings.followMovementLineAuthorInfo);
+                    dropdown.onChange((value: LineAuthorFollowMovement) => {
+                        plugin.settings.followMovementLineAuthorInfo = value;
+                        plugin.saveSettings();
+                        plugin.refreshLineAuthorViews();
+                    });
+                });
+            trackMovement.descEl.innerHTML = `
+                By default (deactivated), each line only shows the newest commit where it was changed.
+                <br/>
+                With <i>same commit</i>, cut-copy-paste-ing of text is followed within the same commit and the original commit of authoring will be shown.
+                <br/>
+                With <i>all commits</i>, cut-copy-paste-ing text inbetween multiple commits will be detected.
+                <br/>
+                It uses <a href=\"https://git-scm.com/docs/git-blame\">git-blame</a> and
+                for matches (at least ${GIT_LINE_AUTHORING_MOVEMENT_DETECTION_MINIMAL_LENGTH} characters) within the same (or all) commit(s), <em>the originating</em> commit's information is shown.`;
+
             new Setting(containerEl)
                 .setName("Show commit hash")
                 .addToggle((tgl) => {

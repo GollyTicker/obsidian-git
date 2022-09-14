@@ -36,6 +36,7 @@ export interface ObsidianGitSettings {
     refreshSourceControlTimer: number;
 
     showLineAuthorInfo: boolean;
+    followMovementLineAuthorInfo: LineAuthorFollowMovement;
     showCommitHashLineAuthorInfo: boolean;
     authorDisplayLineAuthorInfo: LineAuthorDisplay;
     dateTimeFormatOptionsLineAuthorInfo: LineAuthorDateTimeFormatOptions;
@@ -45,6 +46,8 @@ export interface ObsidianGitSettings {
     colorOldLineAuthorInfo: RGB;
     colorNewLineAuthorInfo: RGB;
 }
+
+export type LineAuthorFollowMovement = "inactive" | "same-commit" | "all-commits"
 
 export type LineAuthorDateTimeFormatOptions = "hide" | "date" | "datetime" | "natural language" | "custom";
 

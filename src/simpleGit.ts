@@ -4,12 +4,15 @@ import * as path from "path";
 import { sep } from "path";
 import * as simple from "simple-git";
 import simpleGit, { DefaultLogFields } from "simple-git";
+import { GIT_LINE_AUTHORING_MOVEMENT_DETECTION_MINIMAL_LENGTH } from "src/constants";
+import { typeCheckedUnreachable } from "src/utils";
 import { GitManager } from "./gitManager";
 import ObsidianGit from "./main";
-import { Blame, BlameCommit, BranchInfo, FileStatusResult, PluginState, Status } from "./types";
+import { Blame, BlameCommit, BranchInfo, FileStatusResult, LineAuthorFollowMovement, PluginState, Status } from "./types";
 
 export class SimpleGit extends GitManager {
     git: simple.SimpleGit;
+
     constructor(plugin: ObsidianGit) {
         super(plugin);
     }
@@ -99,9 +102,8 @@ export class SimpleGit extends GitManager {
         }
     }
 
-    async blame(path: string): Promise<Blame | "untracked"> {
-        path = this.getPath(path, true);
-        // note. ^ handle case with git-root != vault-filepath
+    async blame(path: string, trackMovement: LineAuthorFollowMovement): Promise<Blame | "untracked"> {
+        path = this.asRepositoryRelativePath(path, true);
 
         if (!await this.isTracked(path)) return "untracked";
 
@@ -109,7 +111,19 @@ export class SimpleGit extends GitManager {
         const args = inSubmodule ? ["-C", inSubmodule.submodule] : [];
         const relativePath = inSubmodule ? inSubmodule.relativeFilepath : path;
 
-        args.push("blame", "--porcelain", "--", relativePath);
+        args.push("blame", "--porcelain");
+
+        const trackCArg = `-C${GIT_LINE_AUTHORING_MOVEMENT_DETECTION_MINIMAL_LENGTH}`;
+        switch (trackMovement) {
+            case "inactive": break;
+            case "same-commit": args.push("-C", trackCArg); break;
+            case "all-commits": args.push("-C", "-C", trackCArg); break;
+            default:
+                typeCheckedUnreachable(trackMovement);
+        }
+
+        args.push("--", relativePath);
+
         const rawBlame = await this.git.raw(args, err => err && console.warn("git-blame", err));
         return parseBlame(rawBlame);
     }
@@ -190,7 +204,7 @@ export class SimpleGit extends GitManager {
     async stage(path: string, relativeToVault: boolean): Promise<void> {
         this.plugin.setState(PluginState.add);
 
-        path = this.getPath(path, relativeToVault);
+        path = this.asRepositoryRelativePath(path, relativeToVault);
         await this.git.add(["--", path], (err) => this.onError(err));
 
         this.plugin.setState(PluginState.idle);
@@ -213,7 +227,7 @@ export class SimpleGit extends GitManager {
     async unstage(path: string, relativeToVault: boolean): Promise<void> {
         this.plugin.setState(PluginState.add);
 
-        path = this.getPath(path, relativeToVault);
+        path = this.asRepositoryRelativePath(path, relativeToVault);
         await this.git.reset(["--", path], (err) => this.onError(err));
 
         this.plugin.setState(PluginState.idle);
@@ -230,7 +244,7 @@ export class SimpleGit extends GitManager {
     async hashObject(filepath: string): Promise<string> {
         // Need to use raw command here to ensure filenames are literally used.
         // Perhaps we could file a PR? https://github.com/steveukx/git-js/blob/main/simple-git/src/lib/tasks/hash-object.ts
-        filepath = this.getPath(filepath, true);
+        filepath = this.asRepositoryRelativePath(filepath, true);
         const inSubmodule = await this.getSubmoduleOfFile(filepath);
         const args = inSubmodule ? ["-C", inSubmodule.submodule] : [];
         const relativeFilepath = inSubmodule ? inSubmodule.relativeFilepath : filepath;
@@ -354,14 +368,14 @@ export class SimpleGit extends GitManager {
 
     // https://github.com/kometenstaub/obsidian-version-history-diff/issues/3
     async log(file?: string, relativeToVault: boolean = true): Promise<ReadonlyArray<DefaultLogFields>> {
-        const path = this.getPath(file, relativeToVault);
+        const path = this.asRepositoryRelativePath(file, relativeToVault);
 
         const res = await this.git.log({ file: path, }, (err) => this.onError(err));
         return res.all;
     }
 
     async show(commitHash: string, file: string, relativeToVault: boolean = true): Promise<string> {
-        const path = this.getPath(file, relativeToVault);
+        const path = this.asRepositoryRelativePath(file, relativeToVault);
 
         return this.git.show([commitHash + ":" + path], (err) => this.onError(err));
     }
@@ -462,22 +476,19 @@ export class SimpleGit extends GitManager {
         return (await this.git.diff([`${commit1}..${commit2}`, "--", file]));
     }
 
-    async getSubmoduleOfFile(filepath: string): Promise<{ submodule: string; relativeFilepath: string; } | undefined> {
-        // TODO. it assumes that the filepath is relative to git repository root. not necessarily
-        // the in-vault filepath. DOCUMENT THIS CLEARLY
-
+    private async getSubmoduleOfFile(repositoryRelativeFile: string): Promise<{ submodule: string; relativeFilepath: string; } | undefined> {
         // git -C <dir-of-file> rev-parse --show-superproject-working-tree
         // returns the parent git repository, if the file is in a submodule - otherwise empty.
         // git -C <dir-of-file> rev-parse --show-toplevel
         // returns the submodules repository root as an absolute path
         // https://git-scm.com/docs/git-rev-parse#Documentation/git-rev-parse.txt---show-superproject-working-tree
         let root = await this.git.raw(
-            ["-C", path.dirname(filepath), "rev-parse", "--show-toplevel"],
+            ["-C", path.dirname(repositoryRelativeFile), "rev-parse", "--show-toplevel"],
             (err) => err && console.warn("get-submodule-of-file", err?.message));
         root = root.trim();
 
         const superProject = await this.git.raw(
-            ["-C", path.dirname(filepath), "rev-parse", "--show-superproject-working-tree"],
+            ["-C", path.dirname(repositoryRelativeFile), "rev-parse", "--show-superproject-working-tree"],
             (err) => err && console.warn("get-submodule-of-file", err?.message));
 
         if (superProject.trim() === "") {
@@ -485,7 +496,7 @@ export class SimpleGit extends GitManager {
         }
 
         const fsAdapter = this.app.vault.adapter as FileSystemAdapter;
-        const absolutePath = fsAdapter.getFullPath(path.normalize(filepath));
+        const absolutePath = fsAdapter.getFullPath(path.normalize(repositoryRelativeFile));
         const newRelativePath = path.relative(root, absolutePath);
 
         return { submodule: root, relativeFilepath: newRelativePath };

@@ -73,6 +73,8 @@ export default class ObsidianGit extends Plugin {
             this.loading = false;
             dispatchEvent(new CustomEvent("git-view-refresh"));
         }
+
+        this.refreshLineAuthorViews();
     }
 
     async onload() {
@@ -172,7 +174,7 @@ export default class ObsidianGit extends Plugin {
                 if (checking) {
                     return file !== undefined;
                 } else {
-                    app.vault.adapter.append(this.gitManager.getVaultPath(".gitignore"), "\n" + this.gitManager.getPath(file.path, true))
+                    app.vault.adapter.append(this.gitManager.getVaultPath(".gitignore"), "\n" + this.gitManager.asRepositoryRelativePath(file.path, true))
                         .then(() => {
                             this.refresh();
                         });
@@ -379,7 +381,7 @@ export default class ObsidianGit extends Plugin {
                         if (file instanceof TFile) {
                             await this.gitManager.stage(file.path, true);
                         } else {
-                            await this.gitManager.stageAll({ dir: this.gitManager.getPath(file.path, true) });
+                            await this.gitManager.stageAll({ dir: this.gitManager.asRepositoryRelativePath(file.path, true) });
                         }
                         this.displayMessage(`Staged ${file.path}`);
                     });
@@ -395,7 +397,7 @@ export default class ObsidianGit extends Plugin {
                         if (file instanceof TFile) {
                             await this.gitManager.unstage(file.path, true);
                         } else {
-                            await this.gitManager.unstageAll({ dir: this.gitManager.getPath(file.path, true) });
+                            await this.gitManager.unstageAll({ dir: this.gitManager.asRepositoryRelativePath(file.path, true) });
                         }
                         this.displayMessage(`Unstaged ${file.path}`);
                     });
@@ -477,11 +479,15 @@ export default class ObsidianGit extends Plugin {
         };
     }
 
+    get useSimpleGit(): boolean {
+        return Platform.isDesktopApp;
+    }
+
     async init(): Promise<void> {
         this.showNotices();
 
         try {
-            if (Platform.isDesktopApp) {
+            if (this.useSimpleGit) {
                 this.gitManager = new SimpleGit(this);
                 await (this.gitManager as SimpleGit).setGitInstance();
 
@@ -964,7 +970,7 @@ export default class ObsidianGit extends Plugin {
 
     // todo. explain these things.
     public initLineAuthorFunctionality() {
-        if (!lineAuthoringAvailableOnCurrentPlatform) return;
+        if (!lineAuthoringAvailableOnCurrentPlatform(this)) return;
 
         console.log("Enabling line author info functionality.");
         this.lineAuthorInfoProvider = new LineAuthorInfoProvider(this);

@@ -11,15 +11,7 @@ export abstract class GitManager {
         this.app = plugin.app;
     }
 
-    // todo. move new methods used only for line-authoring and add it to simpleGit
-
     abstract status(): Promise<Status>;
-
-    abstract headRevision(): Promise<string>;
-
-    abstract blame(filepath: string): Promise<Blame | "untracked">;
-
-    abstract isTracked(filepath: string): Promise<boolean>;
 
     abstract commitAll({ }: { message?: string, status?: Status, unstagedFiles?: UnstagedFile[]; }): Promise<number | undefined>;
 
@@ -34,8 +26,6 @@ export abstract class GitManager {
     abstract unstage(filepath: string, relativeToVault: boolean): Promise<void>;
 
     abstract discard(filepath: string): Promise<void>;
-
-    abstract hashObject(filepath: string): Promise<string>;
 
     abstract pull(): Promise<FileStatusResult[]>;
 
@@ -77,8 +67,6 @@ export abstract class GitManager {
 
     abstract getDiffString(filePath: string, stagedChanges: boolean): Promise<string>;
 
-    abstract getSubmoduleOfFile(filepath: string): Promise<{ submodule: string; relativeFilepath: string; } | undefined>;
-
     getVaultPath(path: string): string {
         if (this.plugin.settings.basePath) {
             return this.plugin.settings.basePath + "/" + path;
@@ -87,7 +75,7 @@ export abstract class GitManager {
         }
     }
 
-    getPath(path: string, relativeToVault: boolean): string {
+    asRepositoryRelativePath(path: string, relativeToVault: boolean): string {
         return (relativeToVault && this.plugin.settings.basePath.length > 0) ? path.substring(this.plugin.settings.basePath.length + 1) : path;
     }
 

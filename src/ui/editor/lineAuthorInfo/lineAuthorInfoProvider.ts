@@ -1,6 +1,7 @@
 import { Extension, Prec } from "@codemirror/state";
 import { Platform, TFile } from "obsidian";
 import ObsidianGit from "src/main";
+import { SimpleGit } from "src/simpleGit";
 import {
     lineAuthorSettingsExtension,
     subscribeNewEditor
@@ -51,9 +52,11 @@ export class LineAuthorInfoProvider {
 
     /** todo. */
     private async computeLineAuthorInfo(file: TFile) {
-        const headRevision = await this.plugin.gitManager.headRevision();
+        const gitManager = lineAuthoringAvailableOnCurrentPlatform(this.plugin).gitManager;
 
-        const fileHash = await this.plugin.gitManager.hashObject(file.path);
+        const headRevision = await gitManager.headRevision();
+
+        const fileHash = await gitManager.hashObject(file.path);
 
         const key = lineAuthoringId(headRevision, fileHash, file.path);
 
@@ -64,7 +67,7 @@ export class LineAuthorInfoProvider {
         if (this.lineAuthorings.has(key)) {
             // already computed. just tell the editor to update to the key's state
         } else {
-            const gitAuthorResult = await this.plugin.gitManager.blame(file.path);
+            const gitAuthorResult = await gitManager.blame(file.path, this.plugin.settings.followMovementLineAuthorInfo);
             this.lineAuthorings.set(key, gitAuthorResult);
         }
 
@@ -87,4 +90,9 @@ export const enabledLineAuthorInfoExtensions: Extension = Prec.high([
     lineAuthorGutter,
 ]);
 
-export const lineAuthoringAvailableOnCurrentPlatform: boolean = Platform.isDesktopApp;
+export function lineAuthoringAvailableOnCurrentPlatform(plugin: ObsidianGit): { available: boolean; gitManager: SimpleGit } {
+    return {
+        available: plugin.useSimpleGit && Platform.isDesktopApp,
+        gitManager: plugin.gitManager instanceof SimpleGit ? plugin.gitManager : undefined,
+    };
+}

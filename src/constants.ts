@@ -5,6 +5,8 @@ export const DATE_FORMAT = "YYYY-MM-DD";
 export const DATE_TIME_FORMAT_MINUTES = `${DATE_FORMAT} HH:mm`;
 export const DATE_TIME_FORMAT_SECONDS = `${DATE_FORMAT} HH:mm:ss`;
 
+export const GIT_LINE_AUTHORING_MOVEMENT_DETECTION_MINIMAL_LENGTH = 40;
+
 export const DEFAULT_SETTINGS: ObsidianGitSettings = {
     commitMessage: "vault backup: {{date}}",
     autoCommitMessage: undefined, // default undefined for settings migration
@@ -33,6 +35,7 @@ export const DEFAULT_SETTINGS: ObsidianGitSettings = {
 
     // Line Author Info
     showLineAuthorInfo: false,
+    followMovementLineAuthorInfo: "inactive",
     authorDisplayLineAuthorInfo: "full",
     showCommitHashLineAuthorInfo: false,
     dateTimeFormatOptionsLineAuthorInfo: "date",

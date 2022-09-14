@@ -13,6 +13,7 @@ import {
     LineAuthorDateTimeFormatOptions,
     LineAuthorDisplay,
     LineAuthorTimezoneOption,
+    LineAuthorFollowMovement,
     ObsidianGitSettings
 } from "src/types";
 import { epochSecondsNow } from "src/utils";
@@ -124,6 +125,7 @@ export function getObsidianFilepath(state: EditorState): string | undefined {
 
 export type LineAuthorSettings = {
     showCommitHash: boolean;
+    followMovement: LineAuthorFollowMovement;
     authorDisplay: LineAuthorDisplay;
     dateTimeFormatOptions: LineAuthorDateTimeFormatOptions;
     dateTimeFormatCustomString: string;
@@ -138,6 +140,7 @@ export function settingsFrom(
 ): LineAuthorSettings {
     return {
         showCommitHash: settings.showCommitHashLineAuthorInfo,
+        followMovement: settings.followMovementLineAuthorInfo,
         authorDisplay: settings.authorDisplayLineAuthorInfo,
         dateTimeFormatOptions: settings.dateTimeFormatOptionsLineAuthorInfo,
         dateTimeFormatCustomString:
