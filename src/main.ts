@@ -77,6 +77,10 @@ export default class ObsidianGit extends Plugin {
         this.refreshLineAuthorViews();
     }
 
+    async refreshUpdatedHead() {
+        this.refreshLineAuthorViews();
+    }
+
     async onload() {
         console.log('loading ' + this.manifest.name + " plugin");
         this.localStorage = new LocalStorageSettings(this);
@@ -93,6 +97,7 @@ export default class ObsidianGit extends Plugin {
 
     async loadPlugin() {
         addEventListener("git-refresh", this.refresh.bind(this));
+        addEventListener("git-head-update", this.refreshUpdatedHead.bind(this));
 
         this.registerView(GIT_VIEW_CONFIG.type, (leaf) => {
             return new GitView(leaf, this);
@@ -431,6 +436,7 @@ export default class ObsidianGit extends Plugin {
         this.clearAutoPush();
         this.clearAutoBackup();
         removeEventListener("git-refresh", this.refresh.bind(this));
+        removeEventListener("git-head-update", this.refreshUpdatedHead.bind(this));
         this.app.metadataCache.offref(this.modifyEvent);
         this.app.metadataCache.offref(this.deleteEvent);
         this.app.metadataCache.offref(this.createEvent);
@@ -748,6 +754,7 @@ export default class ObsidianGit extends Plugin {
         } else {
             this.displayMessage("No changes to commit");
         }
+        dispatchEvent(new CustomEvent('git-head-update'));
         dispatchEvent(new CustomEvent('git-refresh'));
 
         this.setState(PluginState.idle);
@@ -782,8 +789,8 @@ export default class ObsidianGit extends Plugin {
     }
 
     async push(): Promise<boolean> {
-        if (! await this.isAllInitialized()) return false;
-        if (! await this.remotesAreSet()) {
+        if (!await this.isAllInitialized()) return false;
+        if (!await this.remotesAreSet()) {
             return false;
         }
 
@@ -821,7 +828,7 @@ export default class ObsidianGit extends Plugin {
     /// Used for internals
     /// Returns whether the pull added a commit or not.
     async pull(): Promise<boolean> {
-        if (! await this.remotesAreSet()) {
+        if (!await this.remotesAreSet()) {
             return false;
         }
         const pulledFiles = await this.gitManager.pull();
@@ -830,6 +837,7 @@ export default class ObsidianGit extends Plugin {
         if (pulledFiles.length > 0) {
             this.displayMessage(`Pulled ${pulledFiles.length} ${pulledFiles.length > 1 ? 'files' : 'file'} from remote`);
             this.lastPulledFiles = pulledFiles;
+            dispatchEvent(new CustomEvent("git-head-update"));
         }
         return pulledFiles.length != 0;
     }
