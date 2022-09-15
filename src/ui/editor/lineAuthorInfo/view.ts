@@ -28,6 +28,11 @@ const NEW_COMMIT = "+++";
 
 // todo. opening the same note multiple times sometimes leads to unpopulated blame
 
+// todo. while navigating with the line authoring view, I saw, that
+// re-opening previously closed files, the gutter still appears delayed.
+// I'd expect, that it is shown immediately without a delay.
+// How might we compute/retrieve it earlier?
+
 /** todo. */
 export const lineAuthorGutter = gutter({
     class: "gutter-wip-class",
