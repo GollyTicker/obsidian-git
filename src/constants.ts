@@ -36,7 +36,7 @@ export const DEFAULT_SETTINGS: ObsidianGitSettings = {
     // Line Author Info
     showLineAuthorInfo: false,
     followMovementLineAuthorInfo: "inactive",
-    authorDisplayLineAuthorInfo: "full",
+    authorDisplayLineAuthorInfo: "full", // todo. add unique initials and make it default
     showCommitHashLineAuthorInfo: false,
     dateTimeFormatOptionsLineAuthorInfo: "date",
     dateTimeFormatCustomStringLineAuthorInfo: DATE_TIME_FORMAT_MINUTES,

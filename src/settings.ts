@@ -535,7 +535,10 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                 .onChange((value) => {
                     plugin.settings.showLineAuthorInfo = value;
                     plugin.saveSettings();
-                    value ? plugin.initLineAuthorFunctionality() : plugin.deinitLineAuthorFunctionality();
+
+                    if (value) plugin.lineAuthoringFeature.initLineAuthorFunctionality();
+                    else plugin.lineAuthoringFeature.deinitLineAuthorFunctionality();
+
                     this.display();
                 })
             );
@@ -555,7 +558,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                     dropdown.onChange((value: LineAuthorFollowMovement) => {
                         plugin.settings.followMovementLineAuthorInfo = value;
                         plugin.saveSettings();
-                        plugin.refreshLineAuthorViews();
+                        plugin.lineAuthoringFeature.refreshLineAuthorViews();
                     });
                 });
             trackMovement.descEl.innerHTML = `
@@ -575,7 +578,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                     tgl.onChange(async (value: boolean) => {
                         plugin.settings.showCommitHashLineAuthorInfo = value;
                         plugin.saveSettings();
-                        plugin.refreshLineAuthorViews();
+                        plugin.lineAuthoringFeature.refreshLineAuthorViews();
                     });
                 });
 
@@ -596,7 +599,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                     dropdown.onChange(async (option: LineAuthorDisplay) => {
                         plugin.settings.authorDisplayLineAuthorInfo = option;
                         plugin.saveSettings();
-                        plugin.refreshLineAuthorViews();
+                        plugin.lineAuthoringFeature.refreshLineAuthorViews();
                     });
                 });
 
@@ -617,7 +620,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                     dropdown.onChange(async (option: LineAuthorDateTimeFormatOptions) => {
                         plugin.settings.dateTimeFormatOptionsLineAuthorInfo = option;
                         plugin.saveSettings();
-                        plugin.refreshLineAuthorViews();
+                        plugin.lineAuthoringFeature.refreshLineAuthorViews();
                         this.display();
                     });
                 });
@@ -641,7 +644,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                             );
                             plugin.saveSettings();
                             if (plugin.settings.dateTimeFormatOptionsLineAuthorInfo === "custom") {
-                                plugin.refreshLineAuthorViews();
+                                plugin.lineAuthoringFeature.refreshLineAuthorViews();
                             }
                         });
                     });
@@ -665,7 +668,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                     dropdown.onChange(async (option: LineAuthorTimezoneOption) => {
                         plugin.settings.dateTimeTimezoneLineAuthorInfo = option;
                         plugin.saveSettings();
-                        plugin.refreshLineAuthorViews();
+                        plugin.lineAuthoringFeature.refreshLineAuthorViews();
                     });
                 });
 
@@ -682,7 +685,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                         plugin.settings.coloringMaxAgeLineAuthorInfo = value;
                         oldestAgeSetting.setDesc(this.getQuickPreviewOldestAgeDescription(plugin));
                         plugin.saveSettings();
-                        plugin.refreshLineAuthorViews();
+                        plugin.lineAuthoringFeature.refreshLineAuthorViews();
                     });
                 });
 
@@ -708,7 +711,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                             plugin.settings.colorOldLineAuthorInfo = rgb;
                         }
                         plugin.saveSettings();
-                        plugin.refreshLineAuthorViews();
+                        plugin.lineAuthoringFeature.refreshLineAuthorViews();
                         setting.descEl.innerHTML = this.colorSettingDescHtml(which, plugin);
                     }
                 });

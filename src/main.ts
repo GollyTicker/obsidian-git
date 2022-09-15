@@ -1,13 +1,10 @@
-import { Extension } from "@codemirror/state";
-import { debounce, Debouncer, Editor, EventRef, MarkdownView, Menu, normalizePath, Notice, Platform, Plugin, TAbstractFile, TFile } from "obsidian";
+import { debounce, Debouncer, EventRef, Menu, normalizePath, Notice, Platform, Plugin, TAbstractFile, TFile } from "obsidian";
+import { LineAuthoringIntegration as LineAuthoringFeature } from "src/lineAuthoringController";
 import { PromiseQueue } from "src/promiseQueue";
 import { ObsidianGitSettingsTab } from "src/settings";
 import { StatusBar } from "src/statusBar";
-import { enabledLineAuthorInfoExtensions, LineAuthorInfoProvider, lineAuthoringAvailableOnCurrentPlatform } from "src/ui/editor/lineAuthorInfo/lineAuthorInfoProvider";
-import { latestClickedLineAuthorGutter } from "src/ui/editor/lineAuthorInfo/model";
 import { ChangedFilesModal } from "src/ui/modals/changedFilesModal";
 import { CustomMessageModal } from "src/ui/modals/customMessageModal";
-import { epochSecondsNow } from "src/utils";
 import { DEFAULT_SETTINGS, DIFF_VIEW_CONFIG, GIT_VIEW_CONFIG } from "./constants";
 import { GitManager } from "./gitManager";
 import { IsomorphicGit } from "./isomorphicGit";
@@ -43,12 +40,7 @@ export default class ObsidianGit extends Plugin {
     deleteEvent: EventRef;
     createEvent: EventRef;
     renameEvent: EventRef;
-    lineAuthorInfoProvider: LineAuthorInfoProvider;
-    lineAuthorFileOpenEvent: EventRef;
-    lineAuthorFileModificationEvent: EventRef;
-    lineAuthorRefreshOnCssChangeEvent: EventRef;
-    lineAuthorGutterContextMenuEvent: EventRef;
-    lineAuthorInfoCmExtensions: Extension[] = [];
+    lineAuthoringFeature: LineAuthoringFeature = new LineAuthoringFeature(this);
 
     debRefresh: Debouncer<undefined, void>;
 
@@ -74,11 +66,11 @@ export default class ObsidianGit extends Plugin {
             dispatchEvent(new CustomEvent("git-view-refresh"));
         }
 
-        this.refreshLineAuthorViews();
+        this.lineAuthoringFeature.refreshLineAuthorViews();
     }
 
     async refreshUpdatedHead() {
-        this.refreshLineAuthorViews();
+        this.lineAuthoringFeature.refreshLineAuthorViews();
     }
 
     async onload() {
@@ -107,7 +99,7 @@ export default class ObsidianGit extends Plugin {
             return new DiffView(leaf, this);
         });
 
-        this.registerEditorExtension(this.lineAuthorInfoCmExtensions);
+        this.lineAuthoringFeature.onLoadPlugin();
 
         (this.app.workspace as any).registerHoverLinkSource(GIT_VIEW_CONFIG.type, {
             display: 'Git View',
@@ -431,7 +423,7 @@ export default class ObsidianGit extends Plugin {
         this.gitReady = false;
         dispatchEvent(new CustomEvent('git-refresh'));
 
-        this.deinitLineAuthorFunctionality();
+        this.lineAuthoringFeature.deinitLineAuthorFunctionality();
         this.clearAutoPull();
         this.clearAutoPush();
         this.clearAutoBackup();
@@ -531,9 +523,7 @@ export default class ObsidianGit extends Plugin {
                     this.registerEvent(this.createEvent);
                     this.registerEvent(this.renameEvent);
 
-                    if (this.settings.showLineAuthorInfo) {
-                        this.initLineAuthorFunctionality();
-                    }
+                    this.lineAuthoringFeature.conditionallyActivateBySettings();
 
                     dispatchEvent(new CustomEvent('git-refresh'));
 
@@ -971,97 +961,6 @@ export default class ObsidianGit extends Plugin {
         return false;
     }
 
-    private copyLineAuthorInfoToClipboard(commitHash: string) {
-        navigator.clipboard.writeText(commitHash);
-        console.log("clipboard:", commitHash);
-    }
-
-    // todo. explain these things.
-    public initLineAuthorFunctionality() {
-        if (!lineAuthoringAvailableOnCurrentPlatform(this)) return;
-
-        console.log("Enabling line author info functionality.");
-        this.lineAuthorInfoProvider = new LineAuthorInfoProvider(this);
-
-        this.lineAuthorGutterContextMenuEvent = this.app.workspace.on("editor-menu",
-            (menu: Menu, editor: Editor, _mdv: MarkdownView) => {
-                // click inside editor with caret active. we don't support this option
-                if (editor.hasFocus()) return;
-
-                const lineAuthorGutterWasRecentlyClicked = epochSecondsNow()
-                    .diff(latestClickedLineAuthorGutter.creationTime, "milliseconds") <= 300;
-
-                if (!lineAuthorGutterWasRecentlyClicked) return;
-
-                // zero commit need not be copied
-                if (latestClickedLineAuthorGutter.commit.isZeroCommit) return;
-
-                menu.addItem((item) => item
-                    .setTitle("Copy commit hash")
-                    .setIcon("copy")
-                    .onClick((_evt) => {
-                        this.copyLineAuthorInfoToClipboard(latestClickedLineAuthorGutter.hash);
-                    })
-                );
-            }
-        );
-
-        this.lineAuthorFileOpenEvent = this.app.workspace.on("file-open", (file: TFile) => {
-            this.lineAuthorInfoProvider?.trackChanged(file);
-        });
-
-        this.lineAuthorFileModificationEvent = this.app.vault.on("modify",
-            (anyPath: TAbstractFile) => {
-                if (anyPath instanceof TFile) {
-                    this.lineAuthorInfoProvider?.trackChanged(anyPath);
-                }
-            }
-        );
-
-        this.lineAuthorRefreshOnCssChangeEvent = this.app.workspace.on("css-change", () => {
-            this.refreshLineAuthorViews();
-        });
-
-        this.registerEvent(this.lineAuthorRefreshOnCssChangeEvent);
-
-        this.registerEvent(this.lineAuthorFileOpenEvent);
-
-        this.registerEvent(this.lineAuthorFileModificationEvent);
-
-        // Yes, we need to directly modify the array and notify the change to have
-        // toggleable Codemirror extensions.
-        this.lineAuthorInfoCmExtensions.push(enabledLineAuthorInfoExtensions);
-        this.app.workspace.updateOptions();
-
-        // Handle all initially opened files
-        this.app.workspace.iterateAllLeaves(leaf => {
-            const obsView = (<any>leaf?.view);
-            const file = obsView?.file;
-            if (!file || obsView?.allowNoFile || !this?.lineAuthorInfoProvider) return;
-
-            console.log("Initially registering: ", file?.path);
-            this.lineAuthorInfoProvider.trackChanged(file);
-        });
-    }
-
-    public deinitLineAuthorFunctionality() {
-        console.log("Disabling line author info functionality.");
-        this.app.workspace.offref(this.lineAuthorRefreshOnCssChangeEvent);
-        this.app.workspace.offref(this.lineAuthorFileOpenEvent);
-        this.app.vault.offref(this.lineAuthorFileModificationEvent);
-        this.app.workspace.offref(this.lineAuthorGutterContextMenuEvent);
-
-        // Yes, we need to directly modify the array and notify the change to have
-        // toggleable Codemirror extensions.
-        for (const ext of this.lineAuthorInfoCmExtensions) {
-            this.lineAuthorInfoCmExtensions.remove(ext);
-        }
-        this.app.workspace.updateOptions();
-
-        this.lineAuthorInfoProvider?.destroy();
-        this.lineAuthorInfoProvider = undefined;
-    }
-
     async handleConflict(conflicted?: string[]): Promise<void> {
         this.setState(PluginState.conflicted);
 
@@ -1085,12 +984,6 @@ export default class ObsidianGit extends Plugin {
         this.writeAndOpenFile(lines?.join("\n"));
     }
 
-    public refreshLineAuthorViews() {
-        if (this.settings.showLineAuthorInfo) {
-            this.deinitLineAuthorFunctionality();
-            this.initLineAuthorFunctionality();
-        }
-    }
 
     async editRemotes(): Promise<string | undefined> {
         if (!await this.isAllInitialized()) return;
