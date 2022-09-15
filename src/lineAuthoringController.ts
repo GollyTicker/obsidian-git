@@ -1,11 +1,18 @@
 import { Extension } from "@codemirror/state";
-import { Editor, EventRef, MarkdownView, Menu, TAbstractFile, TFile } from "obsidian";
+import { EventRef, Platform, TAbstractFile, TFile } from "obsidian";
 import ObsidianGit from "src/main";
-import { enabledLineAuthorInfoExtensions, LineAuthorInfoProvider, lineAuthoringAvailableOnCurrentPlatform } from "src/ui/editor/lineAuthorInfo/lineAuthorInfoProvider";
-import { latestClickedLineAuthorGutter } from "src/ui/editor/lineAuthorInfo/model";
-import { epochSecondsNow } from "src/utils";
+import { SimpleGit } from "src/simpleGit";
+import { handleContextMenu } from "src/ui/editor/lineAuthorInfo/contextMenu";
+import { enabledLineAuthorInfoExtensions, LineAuthorInfoProvider } from "src/ui/editor/lineAuthorInfo/lineAuthorInfoProvider";
 
-export class LineAuthoringIntegration {
+// todo. error handling everywhere where needed, so that things run robustly
+
+/**
+ * Manages the interaction between Obsidian (file-open event, modification event, etc.)
+ * and the line authoring feature. It also manages the (de-) activation of the
+ * line authoring functionality.
+ */
+export class LineAuthoringFeature {
 
     private lineAuthorInfoProvider: LineAuthorInfoProvider;
     private fileOpenEvent: EventRef;
@@ -25,32 +32,60 @@ export class LineAuthoringIntegration {
 
     public conditionallyActivateBySettings() {
         if (this.plg.settings.showLineAuthorInfo) {
-            this.initLineAuthorFunctionality();
+            this.activateFeature();
         }
     }
 
-    // todo. explain these things.
-    public initLineAuthorFunctionality() {
-        if (!lineAuthoringAvailableOnCurrentPlatform(this.plg)) return;
-
-        // todo. error handling everywhere where needed, so that things run robustly.
+    public activateFeature() {
+        if (!this.isAvailableOnCurrentPlatform()) return;
 
         console.log("Enabling line author info functionality.");
+
         this.lineAuthorInfoProvider = new LineAuthorInfoProvider(this.plg);
 
-        this.gutterContextMenuEvent = this.createGutterContextMenuHandler();
-        this.fileOpenEvent = this.createFileOpenHandler();
-        this.fileModificationEvent = this.createVaultFileModificationHandler();
-        this.refreshOnCssChangeEvent = this.createCssRefreshHandler();
+        this.createEventHandlers();
 
-        this.plg.registerEvent(this.refreshOnCssChangeEvent);
-        this.plg.registerEvent(this.fileOpenEvent);
-        this.plg.registerEvent(this.fileModificationEvent);
+        this.activateCodeMirrorExtensions();
+    }
 
-        this.activateCodeMirrorLineAuthoringExtensions();
+    public deactivateFeature() {
+        console.log("Disabling line author info functionality.");
 
-        // Handle all initially opened files
+        this.destroyEventHandlers();
+
+        this.deactivateCodeMirrorExtensions();
+
+        this.lineAuthorInfoProvider?.destroy();
+        this.lineAuthorInfoProvider = undefined;
+    }
+
+    public isAvailableOnCurrentPlatform(): { available: boolean; gitManager: SimpleGit } {
+        return {
+            available: this.plg.useSimpleGit && Platform.isDesktopApp,
+            gitManager: this.plg.gitManager instanceof SimpleGit ? this.plg.gitManager : undefined,
+        };
+    }
+
+    // ========================= REFRESH ==========================
+
+    public refreshLineAuthorViews() {
+        if (this.plg.settings.showLineAuthorInfo) {
+            this.deactivateFeature();
+            this.activateFeature();
+        }
+    }
+
+    // ========================= CODEMIRROR EXTENSIONS ==========================
+
+    private activateCodeMirrorExtensions() {
+        // Yes, we need to directly modify the array and notify the change to have
+        // toggleable Codemirror extensions.
+        this.codeMirrorExtensions.push(enabledLineAuthorInfoExtensions);
+        this.plg.app.workspace.updateOptions();
+
+        // Handle all already opened files
         this.plg.app.workspace.iterateAllLeaves(leaf => {
+            // todo. is this the best way to access this?
             const obsView = (<any>leaf?.view);
             const file = obsView?.file;
             if (!file || obsView?.allowNoFile || !this?.lineAuthorInfoProvider) return;
@@ -60,38 +95,7 @@ export class LineAuthoringIntegration {
         });
     }
 
-    public deinitLineAuthorFunctionality() {
-        console.log("Disabling line author info functionality.");
-        this.plg.app.workspace.offref(this.refreshOnCssChangeEvent);
-        this.plg.app.workspace.offref(this.fileOpenEvent);
-        this.plg.app.vault.offref(this.fileModificationEvent);
-        this.plg.app.workspace.offref(this.gutterContextMenuEvent);
-
-        this.deactivateCodeMirrorLineAuthoringExtensions();
-
-        this.lineAuthorInfoProvider?.destroy();
-        this.lineAuthorInfoProvider = undefined;
-    }
-
-    // ========================= REFRESH ==========================
-
-    public refreshLineAuthorViews() {
-        if (this.plg.settings.showLineAuthorInfo) {
-            this.deinitLineAuthorFunctionality();
-            this.initLineAuthorFunctionality();
-        }
-    }
-
-    // ========================= CODEMIRROR EXTENSIONS ==========================
-
-    private activateCodeMirrorLineAuthoringExtensions() {
-        // Yes, we need to directly modify the array and notify the change to have
-        // toggleable Codemirror extensions.
-        this.codeMirrorExtensions.push(enabledLineAuthorInfoExtensions);
-        this.plg.app.workspace.updateOptions();
-    }
-
-    private deactivateCodeMirrorLineAuthoringExtensions() {
+    private deactivateCodeMirrorExtensions() {
         // Yes, we need to directly modify the array and notify the change to have
         // toggleable Codemirror extensions.
         for (const ext of this.codeMirrorExtensions) {
@@ -101,6 +105,24 @@ export class LineAuthoringIntegration {
     }
 
     // ========================= HANDLERS ==========================
+
+    private createEventHandlers() {
+        this.gutterContextMenuEvent = this.createGutterContextMenuHandler();
+        this.fileOpenEvent = this.createFileOpenHandler();
+        this.fileModificationEvent = this.createVaultFileModificationHandler();
+        this.refreshOnCssChangeEvent = this.createCssRefreshHandler();
+
+        this.plg.registerEvent(this.refreshOnCssChangeEvent);
+        this.plg.registerEvent(this.fileOpenEvent);
+        this.plg.registerEvent(this.fileModificationEvent);
+    }
+
+    private destroyEventHandlers() {
+        this.plg.app.workspace.offref(this.refreshOnCssChangeEvent);
+        this.plg.app.workspace.offref(this.fileOpenEvent);
+        this.plg.app.vault.offref(this.fileModificationEvent);
+        this.plg.app.workspace.offref(this.gutterContextMenuEvent);
+    }
 
     private createFileOpenHandler(): EventRef {
         return this.plg.app.workspace.on("file-open", (file: TFile) => {
@@ -121,33 +143,6 @@ export class LineAuthoringIntegration {
     }
 
     private createGutterContextMenuHandler() {
-        return this.plg.app.workspace.on("editor-menu",
-            (menu: Menu, editor: Editor, _mdv: MarkdownView) => {
-                // Click was inside text-editor with active curson. Don't trigger there.
-                if (editor.hasFocus())
-                    return;
-
-                const lineAuthorGutterWasRecentlyClicked = epochSecondsNow()
-                    .diff(latestClickedLineAuthorGutter.creationTime, "milliseconds") <= 300;
-
-                if (!lineAuthorGutterWasRecentlyClicked)
-                    return;
-
-                // Deactivate context-menu item for the zero commit
-                if (latestClickedLineAuthorGutter.commit.isZeroCommit)
-                    return;
-
-                this.addCopyHashMenuItem(menu);
-            }
-        );
-    }
-
-    private addCopyHashMenuItem(menu: Menu) {
-        menu.addItem((item) =>
-            item
-                .setTitle("Copy commit hash")
-                .setIcon("copy")
-                .onClick((_e) => navigator.clipboard.writeText(latestClickedLineAuthorGutter.hash))
-        );
+        return this.plg.app.workspace.on("editor-menu", handleContextMenu);
     }
 }

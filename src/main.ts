@@ -1,5 +1,5 @@
 import { debounce, Debouncer, EventRef, Menu, normalizePath, Notice, Platform, Plugin, TAbstractFile, TFile } from "obsidian";
-import { LineAuthoringIntegration as LineAuthoringFeature } from "src/lineAuthoringController";
+import { LineAuthoringFeature } from "src/lineAuthoringController";
 import { PromiseQueue } from "src/promiseQueue";
 import { ObsidianGitSettingsTab } from "src/settings";
 import { StatusBar } from "src/statusBar";
@@ -423,7 +423,7 @@ export default class ObsidianGit extends Plugin {
         this.gitReady = false;
         dispatchEvent(new CustomEvent('git-refresh'));
 
-        this.lineAuthoringFeature.deinitLineAuthorFunctionality();
+        this.lineAuthoringFeature.deactivateFeature();
         this.clearAutoPull();
         this.clearAutoPush();
         this.clearAutoBackup();

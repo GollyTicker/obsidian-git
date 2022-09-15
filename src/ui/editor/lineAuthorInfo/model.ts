@@ -7,33 +7,13 @@ import {
 } from "@codemirror/state";
 import * as moment from "moment";
 import { editorViewField, RGB } from "obsidian";
+import { DEFAULT_SETTINGS } from "src/constants";
 import {
     Blame,
     BlameCommit,
     LineAuthorDateTimeFormatOptions,
-    LineAuthorDisplay,
-    LineAuthorTimezoneOption,
-    LineAuthorFollowMovement,
-    ObsidianGitSettings
+    LineAuthorDisplay, LineAuthorFollowMovement, LineAuthorTimezoneOption, ObsidianGitSettings
 } from "src/types";
-import { epochSecondsNow } from "src/utils";
-
-// Looking into the proper way how CodeMirror works, we can see
-// that we need state, facet, transactions, etc. to make transactions
-// whenever the git-blame resuls are out, and dispatch them to the view
-// for the updated gutter.
-
-// We could use a state-field to store the current line-author information.
-// Whenever we get the async result from git-blame, we can then issue a transaction
-// to update the line-author state-field.
-// It then is responsible via the GutterMarker or a ViewPlugin to simply display the
-// current computed line-author state-field.
-
-// State Field: https://codemirror.net/docs/ref/#state.StateField
-// Transaction: https://codemirror.net/docs/ref/#state.Transaction
-// Create transaction: https://codemirror.net/docs/ref/#state.EditorState.update
-// We can store the hash of the new git-blame information in an annotation type.
-// https://codemirror.net/docs/ref/#state.Annotation
 
 // use a more neutral word for this functionality
 export type LineAuthoring = Blame | "untracked";
@@ -158,8 +138,6 @@ export type LineAuthorGutterContextMenuMetadata = {
     creationTime: moment.Moment;
     hash: string;
     commit: BlameCommit;
-    start: number;
-    end: number;
 };
 
 export const zeroCommit: BlameCommit = {
@@ -168,10 +146,8 @@ export const zeroCommit: BlameCommit = {
     summary: "",
 };
 
-export let latestClickedLineAuthorGutter: LineAuthorGutterContextMenuMetadata = {
-    hash: "000000",
-    start: 1,
-    end: 1,
-    creationTime: epochSecondsNow(),
-    commit: zeroCommit
-};
+/**
+ * Save the latest setting in a global variable to enable new editors to start with
+ * updated settings rightaway. This avoids minor flickering due to async updates in the editor.
+*/
+export let latestSettings: LineAuthorSettings = settingsFrom(DEFAULT_SETTINGS);

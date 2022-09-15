@@ -1,13 +1,13 @@
 import * as moment from "moment";
-import { Notice, Platform, PluginSettingTab, RGB, Setting } from "obsidian";
+import { Notice, Platform, PluginSettingTab, Setting } from "obsidian";
 import { DATE_TIME_FORMAT_SECONDS, GIT_LINE_AUTHORING_MOVEMENT_DETECTION_MINIMAL_LENGTH } from "src/constants";
-import { lineAuthoringAvailableOnCurrentPlatform, previewColor } from "src/ui/editor/lineAuthorInfo/lineAuthorInfoProvider";
+import { previewColor } from "src/ui/editor/lineAuthorInfo/lineAuthorInfoProvider";
 import { settingsFrom } from "src/ui/editor/lineAuthorInfo/model";
 import { convertToRgb, epochSecondsNow, rgbToString } from "src/utils";
 import { IsomorphicGit } from "./isomorphicGit";
 import ObsidianGit from "./main";
 import { SimpleGit } from "./simpleGit";
-import { LineAuthorDateTimeFormatOptions, LineAuthorDisplay, LineAuthorTimezoneOption, LineAuthorFollowMovement, SyncMethod } from "./types";
+import { LineAuthorDateTimeFormatOptions, LineAuthorDisplay, LineAuthorFollowMovement, LineAuthorTimezoneOption, SyncMethod } from "./types";
 
 export class ObsidianGitSettingsTab extends PluginSettingTab {
     display(): void {
@@ -522,7 +522,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
         const baseLineAuthorInfoSetting = new Setting(containerEl)
             .setName("Show commit authoring information next to each line (git-blame)");
 
-        if (!lineAuthoringAvailableOnCurrentPlatform(plugin)) {
+        if (!plugin.lineAuthoringFeature.isAvailableOnCurrentPlatform()) {
             baseLineAuthorInfoSetting
                 .setDesc("Only available on desktop currently.")
                 .setDisabled(true);
@@ -536,8 +536,8 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                     plugin.settings.showLineAuthorInfo = value;
                     plugin.saveSettings();
 
-                    if (value) plugin.lineAuthoringFeature.initLineAuthorFunctionality();
-                    else plugin.lineAuthoringFeature.deinitLineAuthorFunctionality();
+                    if (value) plugin.lineAuthoringFeature.activateFeature();
+                    else plugin.lineAuthoringFeature.deactivateFeature();
 
                     this.display();
                 })

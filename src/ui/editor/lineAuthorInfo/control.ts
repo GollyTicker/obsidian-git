@@ -1,8 +1,10 @@
 import { EditorState, StateField } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
+import * as deepEqual from "deep-equal";
 import { editorEditorField, editorViewField } from "obsidian";
 import { eventsPerFilePathSingleton } from "src/ui/editor/lineAuthorInfo/eventsPerFilepath";
 import {
+    latestSettings,
     LineAuthoring,
     LineAuthoringId,
     LineAuthorSettings,
@@ -11,48 +13,20 @@ import {
     newSettingsAsTransaction
 } from "src/ui/editor/lineAuthorInfo/model";
 
-/** todo. */
+// todo. handle rename event and refresh views. it should work reliably
+
+/** 
+ * Subscribes to changes in the files on a specific filepath.
+ * It knows its corresponding editor and initiates editor view changes.
+*/
 export class LineAuthoringSubscriber {
     constructor(private state: EditorState) {
         this.subscribeMe();
     }
 
-    public get filepath(): string {
-        return this.state.field(editorViewField)?.file?.path;
-    }
-
-    // todo. handle rename event and refresh views. it should work reliably
-    // perhaps use the -M and -C options of git blame as well?
-
-    public newState(state: EditorState) {
-        // if filepath has changed, then re-subcribe.
-        const oldpath = this.filepath;
-        this.state = state;
-        if (this.filepath !== oldpath) {
-            console.log("E. Resubscribed due to file path change."); // todo. can this scenario even happen?
-            this.unsubscribeMe(oldpath);
-            this.subscribeMe();
-        }
-        return this;
-    }
-
-    public notifySettings(settings: LineAuthorSettings): void {
+    public async notifyLineAuthoring(id: LineAuthoringId, la: LineAuthoring) {
         if (this.view === undefined) {
-            console.warn("View is not defined for editor cache key. Likely a bug.");
-            // todo. telemetry? alternatively beta-testers via BRAT plugin
-            return;
-        }
-
-        const transaction = newSettingsAsTransaction(settings, this.view.state);
-        this.view.dispatch(transaction);
-    }
-
-    public notifyLineAuthoring(id: LineAuthoringId, la: LineAuthoring): void {
-        if (this.view === undefined) {
-            console.warn(
-                "View is not defined for editor cache key. Likely a bug. id: " + id
-            );
-            // todo. telemetry?
+            console.warn(`View is not defined for editor cache key. Unforeseen situation. id: ${id}`);
             return;
         }
 
@@ -62,48 +36,70 @@ export class LineAuthoringSubscriber {
         this.view.dispatch(transaction);
     }
 
-    private get view(): EditorView | undefined {
-        return this.state.field(editorEditorField);
+    public async notifySettings(settings: LineAuthorSettings) {
+        if (this.view === undefined) {
+            console.warn("View is not defined for editor cache key. Unforeseen situation.");
+            return;
+        }
+
+        const transaction = newSettingsAsTransaction(settings, this.view.state);
+        this.view.dispatch(transaction);
+    }
+
+    public updateToNewState(state: EditorState) {
+        // if filepath has changed, then re-subcribe.
+        const oldpath = this.filepath;
+        this.state = state;
+        if (this.filepath !== oldpath) {
+            // todo. can this scenario even happen?
+            console.warn("Resubscribed due to file path change.");
+            this.unsubscribeMe(oldpath);
+            this.subscribeMe();
+        }
+        return this;
     }
 
     private subscribeMe() {
-        eventsPerFilePathSingleton.ifFilepathDefinedTransformSubscribers(
-            this.filepath,
-            (subs) => {
-                subs.add(this);
-            }
-        );
+        eventsPerFilePathSingleton
+            .ifFilepathDefinedTransformSubscribers(this.filepath, (subs) => subs.add(this));
     }
 
     private unsubscribeMe(oldFilepath: string) {
-        eventsPerFilePathSingleton.ifFilepathDefinedTransformSubscribers(
-            oldFilepath,
-            (subs) => subs.delete(this)
-        );
+        eventsPerFilePathSingleton
+            .ifFilepathDefinedTransformSubscribers(oldFilepath, (subs) => subs.delete(this));
+    }
+
+    private get filepath(): string | undefined {
+        return this.state.field(editorViewField)?.file?.path;
+    }
+
+    private get view(): EditorView | undefined {
+        return this.state.field(editorEditorField);
     }
 }
 
-/** todo. */
 export type LineAuthoringSubscribers = Set<LineAuthoringSubscriber>;
 
-/** todo. */
+/**
+ * The Codemirror {@link Extension} used to make each editor subscribe itself to this pub-sub.
+*/
 export const subscribeNewEditor: StateField<LineAuthoringSubscriber> =
     StateField.define<LineAuthoringSubscriber>({
-        create: (state) => {
-            return new LineAuthoringSubscriber(state);
-        },
-        update: (v, transaction) => {
-            return v.newState(transaction.state);
-        },
+        create: (state) => new LineAuthoringSubscriber(state),
+        update: (v, transaction) => v.updateToNewState(transaction.state),
         compare: (a, b) => a === b,
     });
 
 // ======================================================================
 
-export const lineAuthorSettingsExtension: StateField<LineAuthorSettings> =
+export const settingsStateField: StateField<LineAuthorSettings> =
     StateField.define<LineAuthorSettings>({
-        create: (_state) => <LineAuthorSettings>{}, // todo. could this cause problems here?
+        // use the most recent encountered settings
+        create: (_state) => latestSettings,
         update: (v, t) => {
-            return t.annotation(LineAuthorSettingsAvailableType) ?? v;
+            const providedSettings = t.annotation(LineAuthorSettingsAvailableType);
+            providedSettings && Object.assign(latestSettings, providedSettings);
+            return providedSettings ?? v;
         },
+        compare: (a, b) => deepEqual.default(a, b, { strict: true }),
     });

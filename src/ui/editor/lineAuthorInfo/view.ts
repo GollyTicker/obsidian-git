@@ -9,15 +9,15 @@ import {
     LineAuthorDateTimeFormatOptions,
     LineAuthorDisplay
 } from "src/types";
-import { lineAuthorSettingsExtension } from "src/ui/editor/lineAuthorInfo/control";
+import { registerLastClickedGutterHandler } from "src/ui/editor/lineAuthorInfo/contextMenu";
+import { settingsStateField } from "src/ui/editor/lineAuthorInfo/control";
 import {
-    latestClickedLineAuthorGutter, LineAuthorGutterContextMenuMetadata,
     LineAuthoring,
     LineAuthorSettings,
     lineAuthorState, OptLineAuthoring,
     zeroCommit
 } from "src/ui/editor/lineAuthorInfo/model";
-import { epochSecondsNow, typeCheckedUnreachable as impossibleBranch, typeCheckedUnreachable } from "src/utils";
+import { typeCheckedUnreachable as impossibleBranch, typeCheckedUnreachable } from "src/utils";
 
 const RESULT_AWAITING_FALLBACK = "...";
 const VALUE_NOT_FOUND_FALLBACK = "-";
@@ -28,25 +28,6 @@ const NEW_COMMIT = "+++";
 
 // todo. opening the same note multiple times sometimes leads to unpopulated blame
 
-/*
-
-Document this workflow somewhere.
-
-tracked changes within obsidian -> initiate computation | done
-
-computation finished -> publish new value to subscribers for the finished file | done
-
-editors subscribe to their file at startup | done
-
-subscribed editors update their internal state | done
-
-state/editor update -> gutter can get new value | done.
-
-
-note. line authorinfo only in surce and live preview mode.
-
-*/
-
 /** todo. */
 export const lineAuthorGutter = gutter({
     class: "gutter-wip-class",
@@ -55,7 +36,7 @@ export const lineAuthorGutter = gutter({
     lineMarker(view, line, _otherMarkers) {
         const lineAuthoring = view.state.field(lineAuthorState, false);
         const settings: LineAuthorSettings = view.state.field(
-            lineAuthorSettingsExtension,
+            settingsStateField,
             false
         );
 
@@ -88,7 +69,7 @@ export const lineAuthorGutter = gutter({
     renderEmptyElements: true,
     initialSpacer: () => new TextGutter("---"),
     updateSpacer(spacer, update) {
-        const settings = update.state.field(lineAuthorSettingsExtension, false);
+        const settings = update.state.field(settingsStateField, false);
         if (settings?.authorDisplay === undefined) return spacer;
 
         let length = 0;
@@ -122,6 +103,9 @@ export const lineAuthorGutter = gutter({
             default:
                 typeCheckedUnreachable(settings.dateTimeTimezone);
         }
+
+        // todo. give the line authoring the background color, so that it doesn't quickly jump from white to red/blue.
+        // Alternatively, we can color it by the half of bothconfigured colors.
 
         return new TextGutter(Array(length).fill("-").join(""));
     },
@@ -224,16 +208,7 @@ class LineAuthoringGutter extends GutterMarker {
 
         // save this gutters info on mousedown so that the corresponding
         // right-click / context-menu has access to this commit info.
-        node.onmousedown = (event) => {
-            const newMetadata: LineAuthorGutterContextMenuMetadata = {
-                hash,
-                commit,
-                start: this.startLine,
-                end: this.endLine,
-                creationTime: epochSecondsNow(),
-            };
-            Object.assign(latestClickedLineAuthorGutter, newMetadata);
-        };
+        registerLastClickedGutterHandler(node, hash, commit);
 
         // Add basic color based on commit age
         node.style.backgroundColor = commitAuthoringAgeBasedColor(
