@@ -15,7 +15,9 @@ import {
     lineAuthorState,
     settingsFrom
 } from "src/ui/editor/lineAuthorInfo/model";
+import { getAuthors } from "src/ui/editor/lineAuthorInfo/uniqueInitials";
 import { clearViewCache, lineAuthorGutter, previewColor as previewColor2 } from "src/ui/editor/lineAuthorInfo/view";
+import { nonEmptyWords } from "src/utils";
 export const previewColor = previewColor2;
 
 /**
@@ -71,10 +73,18 @@ export class LineAuthorInfoProvider {
             // already computed. just tell the editor to update to the key's state
         } else {
             const gitAuthorResult = await gitManager.blame(filepath, this.plugin.settings.followMovementLineAuthorInfo);
-            this.lineAuthorings.set(key, gitAuthorResult);
+            this.lineAuthorings.set(key, this.postProcessResult(gitAuthorResult));
         }
 
         this.notifyComputationResultToSubscribers(filepath, key);
+    }
+
+    postProcessResult(gitResult: "untracked" | Blame): LineAuthoring {
+        if (gitResult === "untracked") return gitResult;
+
+        const authors: Set<string> = getAuthors(gitResult);
+
+        return { gitResult: gitResult, uniqueInitials: preComputeUniqueInitials(authors) };
     }
 
     private notifyComputationResultToSubscribers(filepath: string, key: string) {
@@ -98,3 +108,7 @@ export const enabledLineAuthorInfoExtensions: Extension = Prec.high([
     lineAuthorState,
     lineAuthorGutter,
 ]);
+function preComputeUniqueInitials(authors: Set<string>): Map<string, string> {
+    throw new Error("Function not implemented.");
+}
+

@@ -16,7 +16,7 @@ import {
 } from "src/types";
 
 // use a more neutral word for this functionality
-export type LineAuthoring = Blame | "untracked";
+export type LineAuthoring = { gitResult: Blame; uniqueInitials: Map<string, string> } | "untracked";
 
 // This cache key may be too strict.
 // We actually don't always want to change the line authro view, when the document changes.

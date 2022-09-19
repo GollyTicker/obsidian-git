@@ -17,7 +17,7 @@ import {
     lineAuthorState, OptLineAuthoring,
     zeroCommit
 } from "src/ui/editor/lineAuthorInfo/model";
-import { currentMoment, median, momentToEpochSeconds, typeCheckedUnreachable as impossibleBranch } from "src/utils";
+import { currentMoment, median, momentToEpochSeconds, nonEmptyWords, typeCheckedUnreachable as impossibleBranch } from "src/utils";
 
 
 const VALUE_NOT_FOUND_FALLBACK = "-";
@@ -139,7 +139,7 @@ function getLineAuthorInfo(
         return newUntrackedFileGutter(key, settings);
     }
 
-    return endLine < lineAuthoring.hashPerLine.length
+    return endLine < lineAuthoring.gitResult.hashPerLine.length
         ? new LineAuthoringGutter(lineAuthoring, startLine, endLine, key, settings)
         : UNDISPLAYED;
 }
@@ -209,7 +209,7 @@ class LineAuthoringGutter extends GutterMarker {
         const optionalAuthorName =
             this.settings.authorDisplay === "hide"
                 ? ""
-                : ` ${authorName(commit, this.settings.authorDisplay)}`;
+                : ` ${authorName(commit, lineAuthoring.uniqueInitials, this.settings.authorDisplay)}`;
 
         const optionalAuthoringDate =
             this.settings.dateTimeFormatOptions === "hide"
@@ -271,17 +271,17 @@ function displayHash(hash: string, commit: BlameCommit) {
  */
 function authorName(
     commit: BlameCommit,
+    uniqueInitials: Map<string, string>,
     authorDisplay: Exclude<LineAuthorDisplay, "hide">
 ): string {
     if (commit.isZeroCommit) return NEW_COMMIT;
 
     const name = commit.author.name;
-    const words = name.split(" ").filter((word) => word.length >= 1);
+    const words = nonEmptyWords(name);
 
     switch (authorDisplay) {
         case "unique initials":
-            // todo.
-            return words.map((word) => word[0].toUpperCase()).join("");
+            return uniqueInitials.get(name) ?? VALUE_NOT_FOUND_FALLBACK;
         case "first name":
             return words.first() ?? VALUE_NOT_FOUND_FALLBACK;
         case "last name":
@@ -398,18 +398,18 @@ function chooseNewestCommitHash(
     startLine: number,
     endLine: number
 ) {
-    const startHash = lineAuthoring.hashPerLine[startLine];
+    const startHash = lineAuthoring.gitResult.hashPerLine[startLine];
 
     let newest = {
         hash: startHash,
-        commit: lineAuthoring.commits.get(startHash),
+        commit: lineAuthoring.gitResult.commits.get(startHash),
     };
 
     if (startLine === endLine) return newest;
 
     for (let line = startLine + 1; line <= endLine; line++) {
-        const currentHash = lineAuthoring.hashPerLine[line];
-        const currentCommit = lineAuthoring.commits.get(currentHash);
+        const currentHash = lineAuthoring.gitResult.hashPerLine[line];
+        const currentCommit = lineAuthoring.gitResult.commits.get(currentHash);
 
         if (
             currentCommit.isZeroCommit ||
@@ -467,21 +467,27 @@ function fallbackLineAuthoring(settings: LineAuthorSettings): Exclude<LineAuthor
         isZeroCommit: false
     };
     return {
-        hashPerLine: [undefined, VALUE_NOT_FOUND_FALLBACK],
-        originalFileLineNrPerLine: undefined,
-        groupSizePerStartingLine: undefined,
-        finalFileLineNrPerLine: undefined,
-        commits: new Map([[VALUE_NOT_FOUND_FALLBACK, unknownCommit]]),
+        gitResult: {
+            hashPerLine: [undefined, VALUE_NOT_FOUND_FALLBACK],
+            originalFileLineNrPerLine: undefined,
+            groupSizePerStartingLine: undefined,
+            finalFileLineNrPerLine: undefined,
+            commits: new Map([[VALUE_NOT_FOUND_FALLBACK, unknownCommit]]),
+        },
+        uniqueInitials: new Map(),
     }
 }
 
 function untrackedFileLineAuthoring(): Exclude<LineAuthoring, "untracked"> {
     return {
-        hashPerLine: [undefined, "000000"],
-        originalFileLineNrPerLine: undefined,
-        groupSizePerStartingLine: undefined,
-        finalFileLineNrPerLine: undefined,
-        commits: new Map([["000000", zeroCommit]]),
+        gitResult: {
+            hashPerLine: [undefined, "000000"],
+            originalFileLineNrPerLine: undefined,
+            groupSizePerStartingLine: undefined,
+            finalFileLineNrPerLine: undefined,
+            commits: new Map([["000000", zeroCommit]]),
+        },
+        uniqueInitials: new Map(),
     };
 }
 

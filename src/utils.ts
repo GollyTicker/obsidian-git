@@ -50,3 +50,7 @@ export function median(array: number[]) {
     if (array.length === 0) return undefined;
     return array.slice().sort()[Math.floor(array.length / 2)];
 }
+
+export function nonEmptyWords(str: string): string[] {
+    return str.split(" ").filter(word => word.length >= 1);
+}
