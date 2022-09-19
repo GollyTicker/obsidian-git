@@ -2,7 +2,7 @@
 import { Editor, MarkdownView, Menu } from "obsidian";
 import { BlameCommit } from "src/types";
 import { LineAuthorGutterContextMenuMetadata, zeroCommit } from "src/ui/editor/lineAuthorInfo/model";
-import { epochSecondsNow } from "src/utils";
+import { currentMoment } from "src/utils";
 
 /**
  * Stores the last clicked line authoring gutter in a global variable.
@@ -22,7 +22,7 @@ import { epochSecondsNow } from "src/utils";
  */
 export let latestClickedLineAuthorGutter: LineAuthorGutterContextMenuMetadata = {
     hash: "000000",
-    creationTime: epochSecondsNow(),
+    creationTime: currentMoment(),
     commit: zeroCommit
 };
 
@@ -33,7 +33,7 @@ export function registerLastClickedGutterHandler(
         const newMetadata: LineAuthorGutterContextMenuMetadata = {
             hash,
             commit,
-            creationTime: epochSecondsNow(),
+            creationTime: currentMoment(),
         };
         Object.assign(latestClickedLineAuthorGutter, newMetadata);
     };
@@ -55,7 +55,7 @@ export function handleContextMenu(menu: Menu, editor: Editor, _mdv: MarkdownView
 }
 
 function gutterWasRecentlyClicked(): boolean {
-    return epochSecondsNow()
+    return currentMoment()
         .diff(latestClickedLineAuthorGutter.creationTime, "milliseconds") <= 300;
 }
 

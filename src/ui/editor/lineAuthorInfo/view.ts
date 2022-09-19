@@ -3,11 +3,11 @@ import * as moment from "moment";
 import { DATE_FORMAT, DATE_TIME_FORMAT_MINUTES } from "src/constants";
 import { parseColoringMaxAgeDuration } from "src/settings";
 import {
-    Blame,
     BlameCommit,
     GitTimestamp,
     LineAuthorDateTimeFormatOptions,
-    LineAuthorDisplay
+    LineAuthorDisplay,
+    UserEmail
 } from "src/types";
 import { registerLastClickedGutterHandler } from "src/ui/editor/lineAuthorInfo/contextMenu";
 import { settingsStateField } from "src/ui/editor/lineAuthorInfo/control";
@@ -17,12 +17,44 @@ import {
     lineAuthorState, OptLineAuthoring,
     zeroCommit
 } from "src/ui/editor/lineAuthorInfo/model";
-import { typeCheckedUnreachable as impossibleBranch, typeCheckedUnreachable } from "src/utils";
+import { currentMoment, median, momentToEpochSeconds, typeCheckedUnreachable as impossibleBranch } from "src/utils";
 
-const RESULT_AWAITING_FALLBACK = "...";
+
 const VALUE_NOT_FOUND_FALLBACK = "-";
-const UNDISPLAYED = " ";
 const NEW_COMMIT = "+++";
+
+const NON_WHITESPACE_REGEXP = /\S/g;
+const UNINTRUSIVE_CHARACTER_FOR_INITIAL_DUMMY_RENDERING = "%";
+
+/**
+ * This fallback for the spacing of a view only happens, when Obsidian
+ * is opened. For every subsequent opened file, the view uses {@link longestRenderedGutter}
+ * to avoid distracting spacing updates.
+ */
+const SPACING_FALLBACK = 5;
+// todo. can we somehow cache the longest gutter across restarts in the filesystem or so?
+// what is the Obsidian API for that?
+
+const ADAPTIVE_INITIAL_COLORING_AGE_CACHE_SIZE = 50;
+
+type LongestGutterCache = { gutter: LineAuthoringGutter, length: number; text: string; };
+let longestRenderedGutter: LongestGutterCache | undefined = undefined;
+
+let renderedAgeInDaysForAdaptiveInitialColoring: number[] = [];
+let ageIdx = 0;
+function recordRenderedAgeInDays(age: number) {
+    renderedAgeInDaysForAdaptiveInitialColoring[ageIdx] = age;
+    ageIdx = (ageIdx + 1) % ADAPTIVE_INITIAL_COLORING_AGE_CACHE_SIZE;
+}
+function computeAdaptiveInitialColoringAgeInDays(): number | undefined {
+    return median(renderedAgeInDaysForAdaptiveInitialColoring);
+}
+
+export function clearViewCache() {
+    longestRenderedGutter = undefined;
+    renderedAgeInDaysForAdaptiveInitialColoring = [];
+    ageIdx = 0;
+}
 
 // todo. closing a window somehow leads to an illegal access error.
 
@@ -50,16 +82,15 @@ export const lineAuthorGutter = gutter({
         // choose the youngest commit - of which the info will be shown.
         const startLine = view.state.doc.lineAt(line.from).number;
         const endLine = view.state.doc.lineAt(line.to).number;
+        const totalLines = view.state.doc.lines;
 
-        const result: LineAuthoringGutter | string = getLineAuthorInfo(
+        return getLineAuthorInfo(
             startLine,
             endLine,
+            totalLines,
             lineAuthoring,
-            settings,
-            RESULT_AWAITING_FALLBACK
+            settings
         );
-
-        return typeof result === "string" ? new TextGutter(result) : result;
     },
     // Only change, when we have any state change
     lineMarkerChange(update) {
@@ -72,61 +103,34 @@ export const lineAuthorGutter = gutter({
         return idsDifferent;
     },
     renderEmptyElements: true,
-    initialSpacer: () => new TextGutter("---"),
+    initialSpacer(_v) {
+        return new TextGutter(new Array(SPACING_FALLBACK).fill("-").join(""));
+    },
     updateSpacer(spacer, update) {
         const settings = update.state.field(settingsStateField, false);
         if (settings?.authorDisplay === undefined) return spacer;
 
-        let length = 0;
-
-        if (settings.showCommitHash) length += 6;
-
-        switch (settings.authorDisplay) {
-            case "first name":
-                length += 8 + 1;
-                break;
-            case "last name":
-            case "full":
-                length += 15 + 1;
-                break;
-            case "initials":
-                length += 2 + 1;
-            case "hide":
-                break;
-            default:
-                typeCheckedUnreachable(settings.authorDisplay);
-        }
-
-        if (settings.dateTimeFormatOptions !== "hide") length += 15 + 1;
-
-        switch (settings.dateTimeTimezone) {
-            case "local":
-                break;
-            case "utc":
-                length += 5 + 1;
-                break;
-            default:
-                typeCheckedUnreachable(settings.dateTimeTimezone);
-        }
-
         // todo. give the line authoring the background color, so that it doesn't quickly jump from white to red/blue.
         // Alternatively, we can color it by the half of bothconfigured colors.
 
-        return new TextGutter(Array(length).fill("-").join(""));
+        return longestRenderedGutter?.gutter ?? new TextGutter(Array(SPACING_FALLBACK).fill("-").join(""));
     },
-    // // todo. use a spaced based on settings to jumps in rendering less distracting.
 });
 
 /** todo. */
 function getLineAuthorInfo(
     startLine: number,
     endLine: number,
+    totalLines: number,
     optLineAuthoring: OptLineAuthoring,
-    settings: LineAuthorSettings,
-    resultAwaitingFallback: string
-): LineAuthoringGutter | string {
+    settings: LineAuthorSettings
+): LineAuthoringGutter | TextGutter {
+    if (startLine === totalLines) { // don't display on last empty newline
+        return UNDISPLAYED;
+    }
+
     if (optLineAuthoring === undefined) {
-        return resultAwaitingFallback;
+        return fallbackLineAuthoringGutter(settings);
     }
 
     const [key, lineAuthoring] = optLineAuthoring;
@@ -138,6 +142,10 @@ function getLineAuthorInfo(
     return endLine < lineAuthoring.hashPerLine.length
         ? new LineAuthoringGutter(lineAuthoring, startLine, endLine, key, settings)
         : UNDISPLAYED;
+}
+
+function fallbackLineAuthoringGutter(settings: LineAuthorSettings) {
+    return new LineAuthoringGutter(fallbackLineAuthoring(settings), 1, 1, "undefined", settings, "dummy-data")
 }
 
 class TextGutter extends GutterMarker {
@@ -158,6 +166,8 @@ class TextGutter extends GutterMarker {
     }
 }
 
+const UNDISPLAYED = new TextGutter("");
+
 /** todo. */
 class LineAuthoringGutter extends GutterMarker {
     constructor(
@@ -165,7 +175,8 @@ class LineAuthoringGutter extends GutterMarker {
         public readonly startLine: number,
         public readonly endLine: number,
         public readonly key: string,
-        public readonly settings: LineAuthorSettings
+        public readonly settings: LineAuthorSettings,
+        public readonly options?: "dummy-data",
     ) {
         super();
     }
@@ -222,12 +233,24 @@ class LineAuthoringGutter extends GutterMarker {
             this.settings
         );
 
-        // todo. use maximum text length for each element to ensure predictable spacing
-        node.innerText = [
+        let toBeRenderedText = [
             optionalShortHash,
             optionalAuthorName,
             optionalAuthoringDate,
         ].join("");
+
+        if (this.options !== "dummy-data" &&
+            toBeRenderedText.length > (longestRenderedGutter?.length ?? 0)
+        ) {
+            longestRenderedGutter = { gutter: this, length: toBeRenderedText.length, text: toBeRenderedText };
+        }
+
+        if (this.options === "dummy-data") {
+            const original = longestRenderedGutter?.text ?? toBeRenderedText;
+            toBeRenderedText = original.replace(NON_WHITESPACE_REGEXP, UNINTRUSIVE_CHARACTER_FOR_INITIAL_DUMMY_RENDERING);
+        }
+
+        node.innerText = toBeRenderedText;
 
         return node;
     }
@@ -241,17 +264,23 @@ function displayHash(hash: string, commit: BlameCommit) {
     return commit.isZeroCommit ? NEW_COMMIT : hash.substring(0, 6);
 }
 
+/**
+ * Renders the author of the commit into a string.
+ * 
+ * <b>When chaging this, please also update {@link spac}
+ */
 function authorName(
     commit: BlameCommit,
     authorDisplay: Exclude<LineAuthorDisplay, "hide">
-) {
+): string {
     if (commit.isZeroCommit) return NEW_COMMIT;
 
     const name = commit.author.name;
     const words = name.split(" ").filter((word) => word.length >= 1);
 
     switch (authorDisplay) {
-        case "initials":
+        case "unique initials":
+            // todo.
             return words.map((word) => word[0].toUpperCase()).join("");
         case "first name":
             return words.first() ?? VALUE_NOT_FOUND_FALLBACK;
@@ -326,8 +355,7 @@ function commitAuthoringAgeBasedColor(
     isZeroCommit: boolean,
     settings: LineAuthorSettings
 ): string {
-    const maxAgeInDays =
-        parseColoringMaxAgeDuration(settings.coloringMaxAge)?.asDays() ?? 356;
+    const maxAgeInDays = maxAgeInDaysFromSettings(settings);
 
     const epochSecondsNow = Date.now() / 1000;
     const authoringEpochSeconds = commitAuthorEpochSeonds ?? 0;
@@ -337,6 +365,8 @@ function commitAuthoringAgeBasedColor(
         : epochSecondsNow - authoringEpochSeconds;
 
     const daysSinceCommit = secondsSinceCommit / 60 / 60 / 24;
+
+    recordRenderedAgeInDays(daysSinceCommit);
 
     // 0 <= x <= 1, larger means older
     // use n-th-root to make recent changes more prnounced
@@ -364,7 +394,7 @@ function lin(z0: number, z1: number, x: number): number {
 }
 
 function chooseNewestCommitHash(
-    lineAuthoring: Blame,
+    lineAuthoring: Exclude<LineAuthoring, "untracked">,
     startLine: number,
     endLine: number
 ) {
@@ -418,6 +448,33 @@ function newUntrackedFileGutter(key: string, settings: LineAuthorSettings) {
     );
 }
 
+// todo. explain render age coloring
+function fallbackLineAuthoring(settings: LineAuthorSettings): Exclude<LineAuthoring, "untracked"> {
+    const ageForInitialRender = computeAdaptiveInitialColoringAgeInDays() ?? maxAgeInDaysFromSettings(settings) * 0.5;
+    const slightlyOlderAgeForInitialRender = currentMoment().add(-ageForInitialRender, "days");
+
+    const author: UserEmail & GitTimestamp = {
+        name: "",
+        email: "",
+        epochSeconds: momentToEpochSeconds(slightlyOlderAgeForInitialRender),
+        tz: "+0000",
+    };
+    const unknownCommit: BlameCommit = {
+        hash: VALUE_NOT_FOUND_FALLBACK,
+        summary: "",
+        author: author,
+        committer: author,
+        isZeroCommit: false
+    };
+    return {
+        hashPerLine: [undefined, VALUE_NOT_FOUND_FALLBACK],
+        originalFileLineNrPerLine: undefined,
+        groupSizePerStartingLine: undefined,
+        finalFileLineNrPerLine: undefined,
+        commits: new Map([[VALUE_NOT_FOUND_FALLBACK, unknownCommit]]),
+    }
+}
+
 function untrackedFileLineAuthoring(): Exclude<LineAuthoring, "untracked"> {
     return {
         hashPerLine: [undefined, "000000"],
@@ -432,4 +489,8 @@ function isDarkMode() {
     const obsidian = (<any>window)?.app;
     // Otherwise it's 'moonstone'
     return obsidian?.getTheme() === "obsidian";
+}
+
+function maxAgeInDaysFromSettings(settings: LineAuthorSettings) {
+    return parseColoringMaxAgeDuration(settings.coloringMaxAge)?.asDays() ?? 356;
 }

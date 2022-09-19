@@ -25,7 +25,7 @@ export function typeCheckedUnreachable(x: never): never {
     throw new Error("Impossible branch: " + x);
 }
 
-export function epochSecondsNow(): Moment {
+export function currentMoment(): Moment {
     return moment.unix(Date.now() / 1000);
 }
 
@@ -40,4 +40,13 @@ export function convertToRgb(str: string): RGB {
     }
     const [r, g, b, _a] = color;
     return { r, g, b };
+}
+
+export function momentToEpochSeconds(instant: Moment): number {
+    return instant.diff(moment.unix(0), "seconds");
+}
+
+export function median(array: number[]) {
+    if (array.length === 0) return undefined;
+    return array.slice().sort()[Math.floor(array.length / 2)];
 }

@@ -4,13 +4,14 @@ import * as deepEqual from "deep-equal";
 import { editorEditorField, editorViewField } from "obsidian";
 import { eventsPerFilePathSingleton } from "src/ui/editor/lineAuthorInfo/eventsPerFilepath";
 import {
-    latestSettings,
+    getLatestSettings,
     LineAuthoring,
     LineAuthoringId,
     LineAuthorSettings,
     LineAuthorSettingsAvailableType,
     newComputationResultAsTransaction,
-    newSettingsAsTransaction
+    newSettingsAsTransaction,
+    updateLatestSettings
 } from "src/ui/editor/lineAuthorInfo/model";
 
 // todo. handle rename event and refresh views. it should work reliably
@@ -95,11 +96,11 @@ export const subscribeNewEditor: StateField<LineAuthoringSubscriber> =
 export const settingsStateField: StateField<LineAuthorSettings> =
     StateField.define<LineAuthorSettings>({
         // use the most recent encountered settings
-        create: (_state) => latestSettings,
+        create: (_state) => getLatestSettings(),
         update: (v, t) => {
-            const providedSettings = t.annotation(LineAuthorSettingsAvailableType);
-            providedSettings && Object.assign(latestSettings, providedSettings);
-            return providedSettings ?? v;
+            const givenSettings = t.annotation<LineAuthorSettings>(LineAuthorSettingsAvailableType);
+            givenSettings && updateLatestSettings(givenSettings);
+            return givenSettings ?? v;
         },
         compare: (a, b) => deepEqual.default(a, b, { strict: true }),
     });

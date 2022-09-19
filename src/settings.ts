@@ -3,7 +3,7 @@ import { Notice, Platform, PluginSettingTab, Setting } from "obsidian";
 import { DATE_TIME_FORMAT_SECONDS, GIT_LINE_AUTHORING_MOVEMENT_DETECTION_MINIMAL_LENGTH } from "src/constants";
 import { previewColor } from "src/ui/editor/lineAuthorInfo/lineAuthorInfoProvider";
 import { settingsFrom } from "src/ui/editor/lineAuthorInfo/model";
-import { convertToRgb, epochSecondsNow, rgbToString } from "src/utils";
+import { convertToRgb, currentMoment, rgbToString } from "src/utils";
 import { IsomorphicGit } from "./isomorphicGit";
 import ObsidianGit from "./main";
 import { SimpleGit } from "./simpleGit";
@@ -591,7 +591,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                         'full': 'Full name (default)',
                         'first name': 'First name',
                         'last name': 'Last name',
-                        'initials': 'Initials',
+                        'unique initials': 'Unique initials',
                     };
                     dropdown.addOptions(options);
                     dropdown.setValue(plugin.settings.authorDisplayLineAuthorInfo);
@@ -735,7 +735,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
 
     private getQuickPreviewCustomDateTimeDescription(plugin: ObsidianGit) {
         const format = plugin.settings.dateTimeFormatCustomStringLineAuthorInfo;
-        const formattedDateTime = epochSecondsNow().format(format);
+        const formattedDateTime = currentMoment().format(format);
         return `Format string to display the authoring date.\nCurrently: ${formattedDateTime}`;
     }
 

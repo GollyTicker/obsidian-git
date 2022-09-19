@@ -150,4 +150,10 @@ export const zeroCommit: BlameCommit = {
  * Save the latest setting in a global variable to enable new editors to start with
  * updated settings rightaway. This avoids minor flickering due to async updates in the editor.
 */
-export let latestSettings: LineAuthorSettings = settingsFrom(DEFAULT_SETTINGS);
+let latestSettings: LineAuthorSettings = settingsFrom(DEFAULT_SETTINGS);
+export function getLatestSettings() {
+    return latestSettings;
+}
+export function updateLatestSettings(settings: LineAuthorSettings) {
+    Object.assign(latestSettings, settings);
+}

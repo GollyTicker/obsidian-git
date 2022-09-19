@@ -1,6 +1,7 @@
 import { Extension, Prec } from "@codemirror/state";
 import { TFile } from "obsidian";
 import ObsidianGit from "src/main";
+import { Blame } from "src/types";
 import {
     settingsStateField,
     subscribeNewEditor
@@ -14,7 +15,7 @@ import {
     lineAuthorState,
     settingsFrom
 } from "src/ui/editor/lineAuthorInfo/model";
-import { lineAuthorGutter, previewColor as previewColor2 } from "src/ui/editor/lineAuthorInfo/view";
+import { clearViewCache, lineAuthorGutter, previewColor as previewColor2 } from "src/ui/editor/lineAuthorInfo/view";
 export const previewColor = previewColor2;
 
 /**
@@ -50,6 +51,7 @@ export class LineAuthorInfoProvider {
     public destroy() {
         this.lineAuthorings.clear();
         eventsPerFilePathSingleton.clear();
+        clearViewCache();
     }
 
     private async computeLineAuthorInfo(filepath: string) {

@@ -54,7 +54,7 @@ export type LineAuthorDateTimeFormatOptions = "hide" | "date" | "datetime" | "na
 // todo. add option for "unique initials"?
 // e.g. John Japer and Josef Joper would become "JJa" and "JJo".
 // this can be disambiguated for each file separately
-export type LineAuthorDisplay = 'hide' | 'full' | 'first name' | 'last name' | 'initials';
+export type LineAuthorDisplay = 'hide' | 'full' | 'first name' | 'last name' | 'unique initials';
 
 export type LineAuthorTimezoneOption = "local" | "utc";
 
