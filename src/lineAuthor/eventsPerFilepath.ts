@@ -1,7 +1,7 @@
 import {
     LineAuthoringSubscriber,
     LineAuthoringSubscribers
-} from "src/ui/editor/lineAuthorInfo/control";
+} from "src/lineAuthor/control";
 
 const SECONDS = 1000;
 const REMOVE_STALES_FREQUENCY = 5 * SECONDS;
