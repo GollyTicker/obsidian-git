@@ -10,6 +10,8 @@ import ObsidianGit from "./main";
 import { SimpleGit } from "./simpleGit";
 
 export class ObsidianGitSettingsTab extends PluginSettingTab {
+    lineAuthorColorSettings: Map<"oldest" | "newest", Setting> = new Map();
+
     display(): void {
         const { containerEl } = this;
         const plugin: ObsidianGit = (this as any).plugin;
@@ -668,18 +670,21 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
 
             const oldestAgeSetting = new Setting(containerEl)
                 .setName("Oldest age in coloring")
-                .setDesc(this.previewOldestAgeDescription(plugin)[0]);
+                .setDesc(
+                    this.previewOldestAgeDescription(plugin.settings.lineAuthor.coloringMaxAge)[0]
+                );
 
             oldestAgeSetting
                 .addText((text) => {
                     text.setPlaceholder("1y");
                     text.setValue(plugin.settings.lineAuthor.coloringMaxAge);
                     text.onChange((value) => {
-                        const [preview, valid] = this.previewOldestAgeDescription(plugin);
+                        const [preview, valid] = this.previewOldestAgeDescription(value);
                         oldestAgeSetting.setDesc(preview);
                         if (valid) {
                             plugin.settings.lineAuthor.coloringMaxAge = value;
                             plugin.saveSettings();
+                            this.refreshColorSettingsText("oldest", plugin);
                             plugin.lineAuthoringFeature.refreshLineAuthorViews();
                         }
                     });
@@ -691,10 +696,9 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
     }
 
     private createColorSetting(which: "oldest" | "newest", containerEl: HTMLElement, plugin: ObsidianGit) {
-        const whichDescriber = which === "oldest" ? `oldest (${plugin.settings.lineAuthor.coloringMaxAge} or older)` : "newest";
 
         const setting = new Setting(containerEl)
-            .setName(`Color for ${whichDescriber} commits`)
+            .setName("")
             .addText((text) => {
                 const color = which === "newest" ? plugin.settings.lineAuthor.colorNew : plugin.settings.lineAuthor.colorOld;
                 text.setPlaceholder(rgbToString(color));
@@ -710,11 +714,23 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                         }
                         plugin.saveSettings();
                         plugin.lineAuthoringFeature.refreshLineAuthorViews();
-                        setting.descEl.innerHTML = this.colorSettingPreviewDescHtml(which, plugin);
+                        this.refreshColorSettingsText(which, plugin);
                     }
                 });
             });
-        setting.descEl.innerHTML = this.colorSettingPreviewDescHtml(which, plugin);
+        this.lineAuthorColorSettings.set(which, setting);
+
+        this.refreshColorSettingsText(which, plugin);
+    }
+
+    private refreshColorSettingsText(which: "oldest" | "newest", plugin: ObsidianGit) {
+        const settings = this.lineAuthorColorSettings.get(which);
+        if (settings) {
+            const whichDescriber = which === "oldest" ? `oldest (${plugin.settings.lineAuthor.coloringMaxAge} or older)` : "newest";
+            settings.nameEl.innerText = `Color for ${whichDescriber} commits`;
+
+            settings.descEl.innerHTML = this.colorSettingPreviewDescHtml(which, plugin);
+        }
     }
 
     private colorSettingPreviewDescHtml(which: "oldest" | "newest", plugin: ObsidianGit): string {
@@ -738,8 +754,8 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
         return `Format string to display the authoring date.\nCurrently: ${formattedDateTime}`;
     }
 
-    private previewOldestAgeDescription(plugin: ObsidianGit) {
-        const duration = parseColoringMaxAgeDuration(plugin.settings.lineAuthor.coloringMaxAge);
+    private previewOldestAgeDescription(coloringMaxAge: string) {
+        const duration = parseColoringMaxAgeDuration(coloringMaxAge);
         const durationString = duration !== undefined ? `${duration.asDays()} days` : "invalid!";
         return [
             `The oldest age in the line author coloring. Everything older will have the same color.\nSmallest valid age is "1d".\nCurrently: ${durationString}`,
