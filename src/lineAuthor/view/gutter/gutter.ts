@@ -92,10 +92,7 @@ export class LineAuthoringGutter extends GutterMarker {
     private createHtmlNode(commit: BlameCommit, text: string) {
         const node = document.body.createDiv();
 
-        // Embed text into <pre> tag to ensure sequences of spaces are not collapsed.
-        const pre = node.createEl("pre");
-        pre.innerText = text;
-        node.appendChild(pre);
+        node.innerText = text;
 
         node.style.backgroundColor = coloringBasedOnCommitAge(
             commit?.author?.epochSeconds,

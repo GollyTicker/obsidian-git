@@ -1,8 +1,8 @@
 import * as moment from "moment";
-import { Notice, Platform, PluginSettingTab, Setting } from "obsidian";
+import { Notice, Platform, PluginSettingTab, RGB, Setting } from "obsidian";
 import { DATE_TIME_FORMAT_SECONDS, GIT_LINE_AUTHORING_MOVEMENT_DETECTION_MINIMAL_LENGTH } from "src/constants";
 import { previewColor } from "src/lineAuthor/lineAuthorProvider";
-import { LineAuthorDateTimeFormatOptions, LineAuthorDisplay, LineAuthorFollowMovement, LineAuthorTimezoneOption } from "src/lineAuthor/model";
+import { LineAuthorDateTimeFormatOptions, LineAuthorDisplay, LineAuthorFollowMovement, LineAuthorSettings, LineAuthorTimezoneOption } from "src/lineAuthor/model";
 import { SyncMethod } from "src/types";
 import { convertToRgb, currentMoment, rgbToString } from "src/utils";
 import { IsomorphicGit } from "./isomorphicGit";
@@ -628,7 +628,9 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
 
             if (plugin.settings.lineAuthor.dateTimeFormatOptions === "custom") {
                 dateTimeFormatCustomStringSetting
-                    .setDesc(this.previewCustomDateTimeDescription(plugin))
+                    .setDesc(
+                        this.previewCustomDateTimeDescription(plugin.settings.lineAuthor.dateTimeFormatCustomString)
+                    )
                     .addText((cb) => {
                         cb.setValue(plugin.settings.lineAuthor.dateTimeFormatCustomString);
                         cb.setPlaceholder("YYYY-MM-DD HH:mm");
@@ -636,7 +638,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                         cb.onChange((value) => {
                             plugin.settings.lineAuthor.dateTimeFormatCustomString = value;
                             dateTimeFormatCustomStringSetting.setDesc(
-                                this.previewCustomDateTimeDescription(plugin)
+                                this.previewCustomDateTimeDescription(value)
                             );
                             plugin.saveSettings();
                             if (plugin.settings.lineAuthor.dateTimeFormatOptions === "custom") {
@@ -714,43 +716,46 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                         }
                         plugin.saveSettings();
                         plugin.lineAuthoringFeature.refreshLineAuthorViews();
-                        this.refreshColorSettingsText(which, plugin);
                     }
+                    this.refreshColorSettingsText(which, plugin, rgb);
                 });
             });
         this.lineAuthorColorSettings.set(which, setting);
 
-        this.refreshColorSettingsText(which, plugin);
+        this.refreshColorSettingsText(which, plugin, pickColor(which, plugin.settings.lineAuthor));
     }
 
-    private refreshColorSettingsText(which: "oldest" | "newest", plugin: ObsidianGit) {
-        const settings = this.lineAuthorColorSettings.get(which);
-        if (settings) {
+    private refreshColorSettingsText(which: "oldest" | "newest", plugin: ObsidianGit, rgb?: RGB) {
+        const settingsDom = this.lineAuthorColorSettings.get(which);
+        if (settingsDom) {
             const whichDescriber = which === "oldest" ? `oldest (${plugin.settings.lineAuthor.coloringMaxAge} or older)` : "newest";
-            settings.nameEl.innerText = `Color for ${whichDescriber} commits`;
+            settingsDom.nameEl.innerText = `Color for ${whichDescriber} commits`;
 
-            settings.descEl.innerHTML = this.colorSettingPreviewDescHtml(which, plugin);
+            settingsDom.descEl.innerHTML = this.colorSettingPreviewDescHtml(
+                which, plugin.settings.lineAuthor, rgb !== undefined
+            );
         }
     }
 
-    private colorSettingPreviewDescHtml(which: "oldest" | "newest", plugin: ObsidianGit): string {
-        const rgbStr = previewColor(which, plugin.settings.lineAuthor);
+    private colorSettingPreviewDescHtml(
+        which: "oldest" | "newest",
+        laSettings: LineAuthorSettings,
+        colorIsValid: boolean,
+    ): string {
+        const rgbStr = colorIsValid ? previewColor(which, laSettings) : `rgba(127,127,127,0.3)`;
         const today = moment.unix(moment.now() / 1000).format("YYYY-MM-DD");
-
-        const preview = rgbStr ? `<div
-                class="line-author-settings-preview"
-                style="background-color: ${rgbStr}; width: 30ch;">
-                abcdef Author Name ${today}
-            </div>`
-            : "<em>invalid color!</em>";
+        const text = colorIsValid ? `abcdef Author Name ${today}` : "invalid color";
+        const preview = `<div
+            class="line-author-settings-preview"
+            style="background-color: ${rgbStr}; width: 30ch;"
+            >${text}</div>`;
 
         return `Supports 'rgb(r,g,b)', 'hsl(h,s,l)', hex (#) and
             named colors (e.g. 'black', 'purple'). Color preview: ${preview}`;
     }
 
-    private previewCustomDateTimeDescription(plugin: ObsidianGit) {
-        const format = plugin.settings.lineAuthor.dateTimeFormatCustomString;
-        const formattedDateTime = currentMoment().format(format);
+    private previewCustomDateTimeDescription(dateTimeFormatCustomString: string) {
+        const formattedDateTime = currentMoment().format(dateTimeFormatCustomString);
         return `Format string to display the authoring date.\nCurrently: ${formattedDateTime}`;
     }
 
@@ -762,6 +767,10 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
             duration
         ] as const;
     }
+}
+
+export function pickColor(which: "oldest" | "newest", las: LineAuthorSettings): RGB {
+    return which === "oldest" ? las.colorOld : las.colorNew;
 }
 
 export function parseColoringMaxAgeDuration(durationString: string): moment.Duration | undefined {
