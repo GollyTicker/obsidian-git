@@ -4,7 +4,7 @@ import {
 } from "src/lineAuthor/control";
 
 const SECONDS = 1000;
-const REMOVE_STALES_FREQUENCY = 5 * SECONDS;
+const REMOVE_STALES_FREQUENCY = 60 * SECONDS;
 
 /**
  * * stores the subscribers/editors interested in changed per filepath
