@@ -4,6 +4,8 @@ Developer documentation.
 
 This feature was developed by [GollyTicker](https://github.com/GollyTicker).
 
+[Feature presentation for users](https://github.com/denolehov/obsidian-git/wiki/Line-Author-Feature).
+
 ## Architecture
 
 To understand how this feature integrates with the [Codemirror 6 editor](https://codemirror.net/) used in the Obsidian editors, it is adviseable to read the following sections of the [Codemirror Guide](https://codemirror.net/docs/guide/):
@@ -117,12 +119,19 @@ These cases should be tested, when changes to this feature have been made.
 
 ======================== OPEN TASKS ========================
 
+* beta testing with real users
+  * create comment in PR/issue on how to download and test it.
+  * ask friends
 * (later?) write tests for most flaky/complex logic
   * utc offset logic
+* important fixes for now:
+  * adaptive coloring doesn't work in my private larger obsidian vault
+    -> it seems to however work and adapt itself when re-starting Obsidian a second time!
+    * the size should however be decreased. Maybe to 35?
 * create feature summary page with GIFs for devs and users
     * link to feature page from settings?
+    * send this to cnr for quick feedback
 * review
-* beta testing with real users
 * decide, whether to notify users once of this feature
 * add GollyTicker as creator for line authoring feature
 * merge
