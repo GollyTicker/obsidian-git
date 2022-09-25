@@ -120,10 +120,8 @@ These cases should be tested, when changes to this feature have been made.
 ======================== OPEN TASKS ========================
 
 * beta testing with real users
-  * create comment in PR/issue on how to download and test it.
-  * ask friends
-* (later?) write tests for most flaky/complex logic
-  * utc offset logic
+  * ask company
+  * ask on discord
 * important fixes for now:
   * adaptive coloring doesn't work in my private larger obsidian vault
     -> it seems to however work and adapt itself when re-starting Obsidian a second time!

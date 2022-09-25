@@ -9,6 +9,8 @@ import { IsomorphicGit } from "./isomorphicGit";
 import ObsidianGit from "./main";
 import { SimpleGit } from "./simpleGit";
 
+const FORMAT_STRING_REFERENCE_URL = "https://momentjs.com/docs/#/parsing/string-format/";
+
 export class ObsidianGitSettingsTab extends PluginSettingTab {
     lineAuthorColorSettings: Map<"oldest" | "newest", Setting> = new Map();
 
@@ -628,24 +630,25 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
 
             if (plugin.settings.lineAuthor.dateTimeFormatOptions === "custom") {
                 dateTimeFormatCustomStringSetting
-                    .setDesc(
-                        this.previewCustomDateTimeDescription(plugin.settings.lineAuthor.dateTimeFormatCustomString)
-                    )
                     .addText((cb) => {
                         cb.setValue(plugin.settings.lineAuthor.dateTimeFormatCustomString);
                         cb.setPlaceholder("YYYY-MM-DD HH:mm");
 
                         cb.onChange((value) => {
                             plugin.settings.lineAuthor.dateTimeFormatCustomString = value;
-                            dateTimeFormatCustomStringSetting.setDesc(
-                                this.previewCustomDateTimeDescription(value)
-                            );
+                            dateTimeFormatCustomStringSetting.descEl.innerHTML =
+                                this.previewCustomDateTimeDescription(value);
                             plugin.saveSettings();
                             if (plugin.settings.lineAuthor.dateTimeFormatOptions === "custom") {
                                 plugin.lineAuthoringFeature.refreshLineAuthorViews();
                             }
                         });
                     });
+
+                dateTimeFormatCustomStringSetting.descEl.innerHTML =
+                    this.previewCustomDateTimeDescription(
+                        plugin.settings.lineAuthor.dateTimeFormatCustomString
+                    );
             }
             else {
                 dateTimeFormatCustomStringSetting
@@ -756,7 +759,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
 
     private previewCustomDateTimeDescription(dateTimeFormatCustomString: string) {
         const formattedDateTime = currentMoment().format(dateTimeFormatCustomString);
-        return `Format string to display the authoring date.\nCurrently: ${formattedDateTime}`;
+        return `<a href="${FORMAT_STRING_REFERENCE_URL}">Format string</a> to display the authoring date.\nCurrently: ${formattedDateTime}`;
     }
 
     private previewOldestAgeDescription(coloringMaxAge: string) {
