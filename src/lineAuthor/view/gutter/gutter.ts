@@ -38,7 +38,7 @@ export class TextGutter extends GutterMarker {
  */
 export class LineAuthoringGutter extends GutterMarker {
     constructor(
-        public readonly la: Exclude<LineAuthoring, "untracked">,
+        public readonly lineAuthoring: Exclude<LineAuthoring, "untracked">,
         public readonly startLine: number,
         public readonly endLine: number,
         public readonly key: string,
@@ -68,9 +68,7 @@ export class LineAuthoringGutter extends GutterMarker {
      * it into HTML.
      */
     public toDOM() {
-        const lineAuthoring = this.la;
-
-        const commit = chooseNewestCommit(lineAuthoring, this.startLine, this.endLine);
+        const commit = chooseNewestCommit(this.lineAuthoring, this.startLine, this.endLine);
 
         let toBeRenderedText = commit.isZeroCommit ? "" : this.renderNonZeroCommit(commit);
 
@@ -119,22 +117,24 @@ export class LineAuthoringGutter extends GutterMarker {
 
         const optionalAuthorName = this.settings.authorDisplay === "hide"
             ? ""
-            : ` ${this.renderAuthorName(commit, this.settings.authorDisplay)}`;
+            : `${this.renderAuthorName(commit, this.settings.authorDisplay)}`;
 
         const optionalAuthoringDate = this.settings.dateTimeFormatOptions === "hide"
             ? ""
-            : ` ${this.renderAuthoringDate(
+            : `${this.renderAuthoringDate(
                 commit,
                 this.settings.dateTimeFormatOptions,
                 this.settings.dateTimeFormatCustomString,
                 this.settings.dateTimeTimezone
             )}`;
 
-        return [
+        const parts = [
             optionalShortHash,
             optionalAuthorName,
             optionalAuthoringDate,
-        ].join("");
+        ];
+
+        return parts.filter(x => x.length >= 1).join(" ");
     }
 
     private renderHash(nonZeroCommit: BlameCommit) {
