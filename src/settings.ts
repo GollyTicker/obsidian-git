@@ -659,7 +659,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                 .addDropdown((dropdown) => {
                     const options: Record<LineAuthorTimezoneOption, string> = {
                         'viewer-local': 'My local (default)',
-                        'author-local': 'Authors local',
+                        'author-local': 'Author\'s local',
                         'utc0000': 'UTC+0000/Z',
                     };
                     dropdown.addOptions(options);
@@ -674,7 +674,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                 .descEl.innerHTML = `
                     The time-zone in which the authoring date should be shown.
                     Either your local time-zone (default),
-                    the authors time-zone during commit creation or
+                    the author's time-zone during commit creation or
                     <a href="https://en.wikipedia.org/wiki/UTC%C2%B100:00">UTC±00:00</a>.
             `;
 
