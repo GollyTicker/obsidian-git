@@ -77,3 +77,9 @@ export function recordRenderedAgeInDays(age: number) {
 export function computeAdaptiveInitialColoringAgeInDays(): number | undefined {
     return median(renderedAgeInDaysForAdaptiveInitialColoring);
 }
+
+
+/**
+ * Caches the {@link LineAuthoringGutter} instances created in `gutter.ts`.
+ */
+export const gutterInstances: Map<string, LineAuthoringGutter> = new Map();

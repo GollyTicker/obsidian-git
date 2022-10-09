@@ -1,10 +1,10 @@
-import { gutter } from "@codemirror/view";
 import { Extension } from "@codemirror/state";
+import { gutter } from "@codemirror/view";
 import {
     latestSettings, LineAuthoringWithId, lineAuthorState
 } from "src/lineAuthor/model";
 import { getLongestRenderedGutter } from "src/lineAuthor/view/cache";
-import { LineAuthoringGutter, TextGutter } from "src/lineAuthor/view/gutter/gutter";
+import { LineAuthoringGutter, lineAuthoringGutterMarker, TextGutter } from "src/lineAuthor/view/gutter/gutter";
 import { initialLineAuthoringGutter, initialSpacingGutter } from "src/lineAuthor/view/gutter/initial";
 import { newUntrackedFileGutter } from "src/lineAuthor/view/gutter/untrackedFile";
 
@@ -80,5 +80,5 @@ function createLineAuthorGutter(
 
     if (endLine >= la.hashPerLine.length) return UNDISPLAYED;
 
-    return new LineAuthoringGutter(la, startLine, endLine, key, settings)
+    return lineAuthoringGutterMarker([la, startLine, endLine, key, settings])
 }
