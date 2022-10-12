@@ -54,6 +54,8 @@ export class LineAuthoringGutter extends GutterMarker {
         super();
     }
 
+    public readonly point = false;
+
     // Equality used by CodeMirror for optimisations
     public eq(other: GutterMarker): boolean {
         return (
@@ -85,13 +87,14 @@ export class LineAuthoringGutter extends GutterMarker {
 
     public destroy(dom: Node): void {
         // this is called frequently, when the gutter moves outside of the view.
-        dom.parentNode?.removeChild(dom);
+        dom?.parentNode?.removeChild(dom);
     }
 
     /**
      * Prepares the DOM for this gutter.
      */
     private computeDom() {
+        console.log("todom");
         const commit = chooseNewestCommit(this.lineAuthoring, this.startLine, this.endLine);
 
         let toBeRenderedText = commit.isZeroCommit ? "" : this.renderNonZeroCommit(commit);

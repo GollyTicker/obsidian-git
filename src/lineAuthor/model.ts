@@ -1,8 +1,7 @@
 import {
     Annotation,
     AnnotationType,
-    EditorState,
-    StateField,
+    EditorState, StateField,
     Transaction
 } from "@codemirror/state";
 import { RGB } from "obsidian";
