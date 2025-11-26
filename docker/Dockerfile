@@ -1,6 +1,6 @@
 # Installs the NPM dependencies for the execution inside docker container
 
-FROM node:18-slim
+FROM node:22-slim
 
 WORKDIR /app
 

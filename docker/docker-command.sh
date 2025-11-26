@@ -3,7 +3,7 @@ set -e
 
 # This script is run within the docker container
 
-npm install
+npm install --ignore-scripts
 
 npm audit || true
 
